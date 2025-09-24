@@ -6,7 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "wave.h"
+#include "audiokit.h"
+
 #define TRUE 1
 #define FALSE 0
 
@@ -18,36 +19,14 @@ unsigned char buffer2[2];
 char *seconds_to_time(float seconds);
 
 FILE *ptr;
-char *filename;
 struct HEADER header;
 
-int main(int argc, char **argv)
+int retrieve_wav_data(char *filename)
 {
-
-    filename = (char *)malloc(sizeof(char) * 1024);
-    if (filename == NULL)
-    {
-        printf("Error in malloc\n");
+    // test if file exists
+    if (access(filename, F_OK) == 1) {
+        printf("This file doesn't exist");
         exit(1);
-    }
-
-    // get file path
-    char cwd[1024];
-    if (getcwd(cwd, sizeof(cwd)) != NULL)
-    {
-
-        strcpy(filename, cwd);
-
-        // get filename from command line
-        if (argc < 2)
-        {
-            printf("No wave file specified\n");
-            return 0;
-        }
-
-        strcat(filename, "/");
-        strcat(filename, argv[1]);
-        printf("%s\n", filename);
     }
 
     // open file

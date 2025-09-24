@@ -1,0 +1,8 @@
+paudiokit.py
+setup.py
+lib/audiokit.c
+paudiokit.egg-info/PKG-INFO
+paudiokit.egg-info/SOURCES.txt
+paudiokit.egg-info/dependency_links.txt
+paudiokit.egg-info/requires.txt
+paudiokit.egg-info/top_level.txt
