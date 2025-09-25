@@ -258,6 +258,18 @@ int retrieve_wav_data(char *filename)
     return 0;
 }
 
+int amplitude_envelope(char * filename) {
+    return 0;
+}
+
+int rms(char * filename) {
+    return 0;
+}
+
+int zcr(char * filename) {
+    return 0;
+}
+
 /**
  * Convert seconds into hh:mm:ss format
  * Params:

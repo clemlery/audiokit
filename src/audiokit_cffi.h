@@ -18,3 +18,11 @@ struct HEADER {
 // This function is used to retrive data in Wave file specified by its path in function parameters
 int retrieve_wav_data(char * filename);
 
+// This function is used to calculate the amplidute envelope of a loaded wav file
+int amplitude_envelope(char * filename);
+
+// This function is used to calculate the RMS (root-mean-square energy) of a loaded wav file
+int rms(char * filename);
+
+// This function is used to calculate the ZCR (zero-crossing rate) of a loaded wav file
+int zcr(char * filename);
