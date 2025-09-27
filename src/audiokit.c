@@ -16,28 +16,48 @@
 unsigned char buffer4[4];
 unsigned char buffer2[2];
 
-char *seconds_to_time(float seconds);
 
 FILE *ptr;
 
-int retrieve_wav_data(char *filename, struct HEADER *out)
+static _Thread_local ErrorContext last_error = { ERR_OK, NULL };
+
+
+// ########################################## ERROR HANDLERS ##########################################
+
+
+static void set_error(ErrorCode code, const char *msg) {
+    last_error.code = code;
+    last_error.msg  = msg;
+}
+
+ErrorCode last_error_code(void) {
+    return last_error.code;
+}
+
+const char *last_error_message(void) {
+    return last_error.msg ? last_error.msg : "";
+}
+
+ErrorCode retrieve_wav_data(char *filename, struct HEADER *out)
 {
+
+    printf("Size of struct header %ld", sizeof(struct HEADER));
+    
     struct HEADER header;
 
     // test if file exists
     if (access(filename, F_OK) == 1)
     {
-        printf("This file doesn't exist");
-        exit(1);
+        set_error(ERR_IO, "This file doesn't exist");
+        return ERR_IO;
     }
 
     // open file
-    printf("Opening  file..\n");
     ptr = fopen(filename, "rb");
     if (ptr == NULL)
     {
-        printf("Error opening file\n");
-        exit(1);
+        set_error(ERR_IO, "Error opening file");
+        return ERR_IO;    
     }
 
     int read = 0;
@@ -45,10 +65,8 @@ int retrieve_wav_data(char *filename, struct HEADER *out)
     // read header parts
 
     read = fread(header.riff, sizeof(header.riff), 1, ptr);
-    printf("(1-4): %s\n", header.riff);
 
     read = fread(buffer4, sizeof(buffer4), 1, ptr);
-    printf("%u %u %u %u\n", buffer4[0], buffer4[1], buffer4[2], buffer4[3]);
 
     // convert little endian to big endian 4 byte int
     header.overall_size = buffer4[0] |
@@ -56,26 +74,20 @@ int retrieve_wav_data(char *filename, struct HEADER *out)
                           (buffer4[2] << 16) |
                           (buffer4[3] << 24);
 
-    printf("(5-8) Overall size: bytes:%u, Kb:%u\n", header.overall_size, header.overall_size / 1024);
 
     read = fread(header.wave, sizeof(header.wave), 1, ptr);
-    printf("(9-12) Wave marker: %s\n", header.wave);
 
     read = fread(header.fmt_chunk_marker, sizeof(header.fmt_chunk_marker), 1, ptr);
-    printf("(13-16) Fmt marker: %s\n", header.fmt_chunk_marker);
 
     read = fread(buffer4, sizeof(buffer4), 1, ptr);
-    printf("%u %u %u %u\n", buffer4[0], buffer4[1], buffer4[2], buffer4[3]);
 
     // convert little endian to big endian 4 byte integer
     header.length_of_fmt = buffer4[0] |
                            (buffer4[1] << 8) |
                            (buffer4[2] << 16) |
                            (buffer4[3] << 24);
-    printf("(17-20) Length of Fmt header: %u\n", header.length_of_fmt);
 
     read = fread(buffer2, sizeof(buffer2), 1, ptr);
-    printf("%u %u\n", buffer2[0], buffer2[1]);
 
     header.format_type = buffer2[0] | (buffer2[1] << 8);
     char format_name[10] = "";
@@ -86,73 +98,56 @@ int retrieve_wav_data(char *filename, struct HEADER *out)
     else if (header.format_type == 7)
         strcpy(format_name, "Mu-law");
 
-    printf("(21-22) Format type: %u %s\n", header.format_type, format_name);
 
     read = fread(buffer2, sizeof(buffer2), 1, ptr);
-    printf("%u %u\n", buffer2[0], buffer2[1]);
 
     header.channels = buffer2[0] | (buffer2[1] << 8);
-    printf("(23-24) Channels: %u\n", header.channels);
 
     read = fread(buffer4, sizeof(buffer4), 1, ptr);
-    printf("%u %u %u %u\n", buffer4[0], buffer4[1], buffer4[2], buffer4[3]);
 
     header.sample_rate = buffer4[0] |
                          (buffer4[1] << 8) |
                          (buffer4[2] << 16) |
                          (buffer4[3] << 24);
 
-    printf("(25-28) Sample rate: %u\n", header.sample_rate);
 
     read = fread(buffer4, sizeof(buffer4), 1, ptr);
-    printf("%u %u %u %u\n", buffer4[0], buffer4[1], buffer4[2], buffer4[3]);
 
     header.byterate = buffer4[0] |
                       (buffer4[1] << 8) |
                       (buffer4[2] << 16) |
                       (buffer4[3] << 24);
-    printf("(29-32) Byte Rate: %u , Bit Rate:%u\n", header.byterate, header.byterate * 8);
 
     read = fread(buffer2, sizeof(buffer2), 1, ptr);
-    printf("%u %u\n", buffer2[0], buffer2[1]);
 
     header.block_align = buffer2[0] |
                          (buffer2[1] << 8);
-    printf("(33-34) Block Alignment: %u\n", header.block_align);
 
     read = fread(buffer2, sizeof(buffer2), 1, ptr);
-    printf("%u %u\n", buffer2[0], buffer2[1]);
 
     header.bits_per_sample = buffer2[0] |
                              (buffer2[1] << 8);
-    printf("(35-36) Bits per sample: %u\n", header.bits_per_sample);
 
     read = fread(header.data_chunk_header, sizeof(header.data_chunk_header), 1, ptr);
-    printf("(37-40) Data Marker: %s\n", header.data_chunk_header);
 
     read = fread(buffer4, sizeof(buffer4), 1, ptr);
-    printf("%u %u %u %u\n", buffer4[0], buffer4[1], buffer4[2], buffer4[3]);
 
     header.data_size = buffer4[0] |
                        (buffer4[1] << 8) |
                        (buffer4[2] << 16) |
                        (buffer4[3] << 24);
-    printf("(41-44) Size of data chunk: %u\n", header.data_size);
 
     // calculate no.of samples
     long num_samples = (8 * header.data_size) / (header.channels * header.bits_per_sample);
-    printf("Number of samples:%lu\n", num_samples);
 
     long size_of_each_sample = (header.channels * header.bits_per_sample) / 8;
-    printf("Size of each sample:%ld bytes\n", size_of_each_sample);
 
     // calculate duration of file
     float duration_in_seconds = (float)header.overall_size / header.byterate;
-    printf("Approx.Duration in seconds=%f\n", duration_in_seconds);
-    printf("Approx.Duration in h:m:s=%s\n", seconds_to_time(duration_in_seconds));
 
     int sample_data[header.channels];
     int data[num_samples * header.channels];
+    char *error_message;
 
     // read each sample from data chunk if PCM
     if (header.format_type == 1)
@@ -167,8 +162,10 @@ int retrieve_wav_data(char *filename, struct HEADER *out)
         long bytes_in_each_channel = (size_of_each_sample / header.channels);
         if ((bytes_in_each_channel * header.channels) != size_of_each_sample)
         {
-            printf("Error: %ld x %u <> %ld\n", bytes_in_each_channel, header.channels, size_of_each_sample);
+            sprintf(error_message, "Error wrong file format: %ld x %u <> %ld", bytes_in_each_channel, header.channels, size_of_each_sample);
+            set_error(ERR_FORMAT,error_message);
             size_is_correct = FALSE;
+            return ERR_FORMAT;
         }
 
         if (size_is_correct)
@@ -228,8 +225,11 @@ int retrieve_wav_data(char *filename, struct HEADER *out)
                         offset += bytes_in_each_channel;
 
                         // check if value was in range
-                        if (data_in_channel < low_limit || data_in_channel > high_limit)
-                            printf("**value out of range\n");
+                        if (data_in_channel < low_limit || data_in_channel > high_limit) 
+                        {
+                            set_error(ERR_INTERNAL, "Value out of range")   ; 
+                            return ERR_INTERNAL;
+                        }
 
                         data[data_index] = data_in_channel;
                         data_index++;
@@ -237,9 +237,10 @@ int retrieve_wav_data(char *filename, struct HEADER *out)
 
                 }
                 else
-                {
-                    printf("Error reading file. %d bytes\n", read);
-                    break;
+                {   
+                    sprintf(error_message, "Error reading file. %d bytes", read);
+                    set_error(ERR_INTERNAL, error_message);
+                    return ERR_INTERNAL;
                 }
 
             } // 	for (i =1; i <= num_samples; i++) {
@@ -248,13 +249,10 @@ int retrieve_wav_data(char *filename, struct HEADER *out)
 
     } //  if (header.format_type == 1) {
 
-    printf("Closing file..\n");
     fclose(ptr);
 
-    // cleanup before quitting
-    free(filename);
-
-    out = &header;
+    *out = header;
+    set_error(ERR_OK, NULL);
 
     return 0;
 }
@@ -275,6 +273,11 @@ int zcr(char *filename)
 }
 
 // ########################################## ACCESSING META-DATA ##########################################
+
+
+
+
+
 
 // ########################################## HELPERS ##########################################
 
@@ -310,3 +313,17 @@ char *seconds_to_time(float raw_seconds)
     sprintf(hms, "%d:%d:%d.%d", hours, minutes, seconds, milliseconds);
     return hms;
 }
+
+
+// int main() {
+
+//     struct HEADER *out = (struct HEADER*)malloc(sizeof(struct HEADER));
+
+//     char *filename = "./data/file_example_WAV_2MG.wav";
+
+//     retrieve_wav_data(filename, out);
+
+//     printf("Channels : %u", out->channels);
+
+
+// }

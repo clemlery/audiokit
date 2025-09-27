@@ -7,6 +7,19 @@ ffibuilder = FFI()
 ffibuilder.cdef("""
     int retrieve_wav_data(char *filename, struct HEADER* out);
     
+    typedef enum {
+        ERR_OK = 0,
+        ERR_INVALID_ARG,
+        ERR_IO,
+        ERR_FORMAT,
+        ERR_OUT_OF_MEMORY,
+        ERR_INTERNAL
+    } ErrorCode;
+    
+    ErrorCode last_error_code(void);
+
+    const char *last_error_message(void);
+    
     struct HEADER {
         unsigned char riff[4];
         unsigned int overall_size;

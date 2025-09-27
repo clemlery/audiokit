@@ -19,9 +19,32 @@ struct HEADER {
 	unsigned int data_size;						// NumSamples * NumChannels * BitsPerSample/8 - size of the next chunk that will be read
 };
 
+// ########################################## ERROR HANDLERS ##########################################
+
+// Enum used to define different type of error to return if anything goes wrong.
+typedef enum {
+    ERR_OK = 0,
+    ERR_INVALID_ARG,
+    ERR_IO,
+    ERR_FORMAT,
+    ERR_OUT_OF_MEMORY,
+    ERR_INTERNAL
+} ErrorCode;
+
+typedef struct {
+    ErrorCode code;
+    const char *msg;
+} ErrorContext;
+
+static void set_error(ErrorCode code, const char *msg);
+
+ErrorCode last_error_code(void);
+
+const char *last_error_message(void);
+
 
 // This function is used to retrive data in Wave file specified by its path in function parameters
-int retrieve_wav_data(char * filename, struct HEADER* out);
+ErrorCode retrieve_wav_data(char * filename, struct HEADER* out);
 
 // This function is used to calculate the amplidute envelope of a loaded wav file
 int amplitude_envelope(char * filename);
@@ -31,5 +54,10 @@ int rms(char * filename);
 
 // This function is used to calculate the ZCR (zero-crossing rate) of a loaded wav file
 int zcr(char * filename);
+
+// ########################################## HELPERS ##########################################
+
+char *seconds_to_time(float seconds);
+
 
 #endif // AUDIOKIT_H
