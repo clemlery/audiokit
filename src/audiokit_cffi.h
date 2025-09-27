@@ -16,7 +16,7 @@ struct HEADER {
 };
 
 // This function is used to retrive data in Wave file specified by its path in function parameters
-int retrieve_wav_data(char * filename);
+int retrieve_wav_data(char * filename, struct HEADER* out);
 
 // This function is used to calculate the amplidute envelope of a loaded wav file
 int amplitude_envelope(char * filename);

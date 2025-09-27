@@ -19,12 +19,14 @@ unsigned char buffer2[2];
 char *seconds_to_time(float seconds);
 
 FILE *ptr;
-struct HEADER header;
 
-int retrieve_wav_data(char *filename)
+int retrieve_wav_data(char *filename, struct HEADER *out)
 {
+    struct HEADER header;
+
     // test if file exists
-    if (access(filename, F_OK) == 1) {
+    if (access(filename, F_OK) == 1)
+    {
         printf("This file doesn't exist");
         exit(1);
     }
@@ -149,105 +151,101 @@ int retrieve_wav_data(char *filename)
     printf("Approx.Duration in seconds=%f\n", duration_in_seconds);
     printf("Approx.Duration in h:m:s=%s\n", seconds_to_time(duration_in_seconds));
 
+    int sample_data[header.channels];
+    int data[num_samples * header.channels];
+
     // read each sample from data chunk if PCM
     if (header.format_type == 1)
     { // PCM
-        printf("Dump sample data? Y/N?\n");
-        char c = 'n';
-        scanf("%c", &c);
-        if (c == 'Y' || c == 'y')
-        {
-            long i = 0;
-            char data_buffer[size_of_each_sample];
-            int size_is_correct = TRUE;
 
-            // make sure that the bytes-per-sample is completely divisible by num.of channels
-            long bytes_in_each_channel = (size_of_each_sample / header.channels);
-            if ((bytes_in_each_channel * header.channels) != size_of_each_sample)
+        long i = 0;
+        long data_index = 0;
+        char data_buffer[size_of_each_sample];
+        int size_is_correct = TRUE;
+
+        // make sure that the bytes-per-sample is completely divisible by num.of channels
+        long bytes_in_each_channel = (size_of_each_sample / header.channels);
+        if ((bytes_in_each_channel * header.channels) != size_of_each_sample)
+        {
+            printf("Error: %ld x %u <> %ld\n", bytes_in_each_channel, header.channels, size_of_each_sample);
+            size_is_correct = FALSE;
+        }
+
+        if (size_is_correct)
+        {
+            // the valid amplitude range for values based on the bits per sample
+            long low_limit = 0l;
+            long high_limit = 0l;
+
+            switch (header.bits_per_sample)
             {
-                printf("Error: %ld x %u <> %ld\n", bytes_in_each_channel, header.channels, size_of_each_sample);
-                size_is_correct = FALSE;
+            case 8:
+                low_limit = -128;
+                high_limit = 127;
+                break;
+            case 16:
+                low_limit = -32768;
+                high_limit = 32767;
+                break;
+            case 32:
+                low_limit = -2147483648;
+                high_limit = 2147483647;
+                break;
             }
 
-            if (size_is_correct)
+            printf("\n\nValid range for data values : %ld to %ld\n", low_limit, high_limit);
+            for (i = 1; i <= num_samples; i++)
             {
-                // the valid amplitude range for values based on the bits per sample
-                long low_limit = 0l;
-                long high_limit = 0l;
-
-                switch (header.bits_per_sample)
+                read = fread(data_buffer, sizeof(data_buffer), 1, ptr);
+                if (read == 1)
                 {
-                case 8:
-                    low_limit = -128;
-                    high_limit = 127;
-                    break;
-                case 16:
-                    low_limit = -32768;
-                    high_limit = 32767;
-                    break;
-                case 32:
-                    low_limit = -2147483648;
-                    high_limit = 2147483647;
+
+                    // dump the data read
+                    unsigned int xchannels = 0;
+                    int data_in_channel = 0;
+                    int offset = 0; // move the offset for every iteration in the loop below
+                    for (xchannels = 0; xchannels < header.channels; xchannels++)
+                    {
+                        // convert data from little endian to big endian based on bytes in each channel sample
+                        if (bytes_in_each_channel == 4)
+                        {
+                            data_in_channel = (data_buffer[offset] & 0x00ff) |
+                                              ((data_buffer[offset + 1] & 0x00ff) << 8) |
+                                              ((data_buffer[offset + 2] & 0x00ff) << 16) |
+                                              (data_buffer[offset + 3] << 24);
+                        }
+                        else if (bytes_in_each_channel == 2)
+                        {
+                            data_in_channel = (data_buffer[offset] & 0x00ff) |
+                                              (data_buffer[offset + 1] << 8);
+                        }
+                        else if (bytes_in_each_channel == 1)
+                        {
+                            data_in_channel = data_buffer[offset] & 0x00ff;
+                            data_in_channel -= 128; // in wave, 8-bit are unsigned, so shifting to signed
+                        }
+
+                        offset += bytes_in_each_channel;
+
+                        // check if value was in range
+                        if (data_in_channel < low_limit || data_in_channel > high_limit)
+                            printf("**value out of range\n");
+
+                        data[data_index] = data_in_channel;
+                        data_index++;
+                    }
+
+                }
+                else
+                {
+                    printf("Error reading file. %d bytes\n", read);
                     break;
                 }
 
-                printf("\n\nValid range for data values : %ld to %ld\n", low_limit, high_limit);
-                for (i = 1; i <= num_samples; i++)
-                {
-                    printf("==========Sample %ld / %ld=============\n", i, num_samples);
-                    read = fread(data_buffer, sizeof(data_buffer), 1, ptr);
-                    if (read == 1)
-                    {
+            } // 	for (i =1; i <= num_samples; i++) {
 
-                        // dump the data read
-                        unsigned int xchannels = 0;
-                        int data_in_channel = 0;
-                        int offset = 0; // move the offset for every iteration in the loop below
-                        for (xchannels = 0; xchannels < header.channels; xchannels++)
-                        {
-                            printf("Channel#%d : ", (xchannels + 1));
-                            // convert data from little endian to big endian based on bytes in each channel sample
-                            if (bytes_in_each_channel == 4)
-                            {
-                                data_in_channel = (data_buffer[offset] & 0x00ff) |
-                                                  ((data_buffer[offset + 1] & 0x00ff) << 8) |
-                                                  ((data_buffer[offset + 2] & 0x00ff) << 16) |
-                                                  (data_buffer[offset + 3] << 24);
-                            }
-                            else if (bytes_in_each_channel == 2)
-                            {
-                                data_in_channel = (data_buffer[offset] & 0x00ff) |
-                                                  (data_buffer[offset + 1] << 8);
-                            }
-                            else if (bytes_in_each_channel == 1)
-                            {
-                                data_in_channel = data_buffer[offset] & 0x00ff;
-                                data_in_channel -= 128; // in wave, 8-bit are unsigned, so shifting to signed
-                            }
+        } // 	if (size_is_correct) {
 
-                            offset += bytes_in_each_channel;
-                            printf("%d ", data_in_channel);
-
-                            // check if value was in range
-                            if (data_in_channel < low_limit || data_in_channel > high_limit)
-                                printf("**value out of range\n");
-
-                            printf(" | ");
-                        }
-
-                        printf("\n");
-                    }
-                    else
-                    {
-                        printf("Error reading file. %d bytes\n", read);
-                        break;
-                    }
-
-                } // 	for (i =1; i <= num_samples; i++) {
-
-            } // 	if (size_is_correct) {
-
-        } // if (c == 'Y' || c == 'y') {
     } //  if (header.format_type == 1) {
 
     printf("Closing file..\n");
@@ -255,20 +253,30 @@ int retrieve_wav_data(char *filename)
 
     // cleanup before quitting
     free(filename);
+
+    out = &header;
+
     return 0;
 }
 
-int amplitude_envelope(char * filename) {
+int amplitude_envelope(char *filename)
+{
     return 0;
 }
 
-int rms(char * filename) {
+int rms(char *filename)
+{
     return 0;
 }
 
-int zcr(char * filename) {
+int zcr(char *filename)
+{
     return 0;
 }
+
+// ########################################## ACCESSING META-DATA ##########################################
+
+// ########################################## HELPERS ##########################################
 
 /**
  * Convert seconds into hh:mm:ss format

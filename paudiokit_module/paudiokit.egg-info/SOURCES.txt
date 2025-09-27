@@ -1,6 +1,5 @@
-paudiokit.py
 setup.py
-lib/audiokit.c
+../src/audiokit.c
 paudiokit.egg-info/PKG-INFO
 paudiokit.egg-info/SOURCES.txt
 paudiokit.egg-info/dependency_links.txt
