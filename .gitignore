@@ -1,0 +1,39 @@
+# Compilés / exécutables
+*.o
+*.out
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Archives statiques / dynamiques
+*.a
+*.la
+*.lo
+
+# Debug / profiling
+*.gch
+*.pch
+*.prof
+*.dSYM/
+*.stackdump
+
+# Make / build
+*.obj
+*.elf
+*.map
+*.mod
+*.cmd
+*.sym
+*.dep
+
+# Éditeurs / IDE
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Autres
+build/
+dist/
