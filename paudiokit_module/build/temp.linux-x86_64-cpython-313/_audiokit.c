@@ -575,23 +575,24 @@ static void (*_cffi_call_python_org)(struct _cffi_externpy_s *, char *);
 /************************************************************/
 
 static void *_cffi_types[] = {
-/*  0 */ _CFFI_OP(_CFFI_OP_FUNCTION, 8), // ErrorCode()(void)
-/*  1 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/*  2 */ _CFFI_OP(_CFFI_OP_FUNCTION, 9), // char const *()(void)
-/*  3 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/*  4 */ _CFFI_OP(_CFFI_OP_FUNCTION, 11), // int()(char *, struct HEADER *)
-/*  5 */ _CFFI_OP(_CFFI_OP_POINTER, 10), // char *
-/*  6 */ _CFFI_OP(_CFFI_OP_POINTER, 12), // struct HEADER *
-/*  7 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/*  8 */ _CFFI_OP(_CFFI_OP_ENUM, 0), // ErrorCode
-/*  9 */ _CFFI_OP(_CFFI_OP_POINTER, 10), // char const *
-/* 10 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 2), // char
-/* 11 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7), // int
-/* 12 */ _CFFI_OP(_CFFI_OP_STRUCT_UNION, 0), // struct HEADER
-/* 13 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 4), // unsigned char
-/* 14 */ _CFFI_OP(_CFFI_OP_ARRAY, 13), // unsigned char[4]
-/* 15 */ (_cffi_opcode_t)(4),
-/* 16 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8), // unsigned int
+/*  0 */ _CFFI_OP(_CFFI_OP_FUNCTION, 9), // ErrorCode()(char *, struct HEADER *, int *)
+/*  1 */ _CFFI_OP(_CFFI_OP_POINTER, 11), // char *
+/*  2 */ _CFFI_OP(_CFFI_OP_POINTER, 13), // struct HEADER *
+/*  3 */ _CFFI_OP(_CFFI_OP_POINTER, 12), // int *
+/*  4 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/*  5 */ _CFFI_OP(_CFFI_OP_FUNCTION, 9), // ErrorCode()(void)
+/*  6 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/*  7 */ _CFFI_OP(_CFFI_OP_FUNCTION, 10), // char const *()(void)
+/*  8 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/*  9 */ _CFFI_OP(_CFFI_OP_ENUM, 0), // ErrorCode
+/* 10 */ _CFFI_OP(_CFFI_OP_POINTER, 11), // char const *
+/* 11 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 2), // char
+/* 12 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7), // int
+/* 13 */ _CFFI_OP(_CFFI_OP_STRUCT_UNION, 0), // struct HEADER
+/* 14 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 4), // unsigned char
+/* 15 */ _CFFI_OP(_CFFI_OP_ARRAY, 14), // unsigned char[4]
+/* 16 */ (_cffi_opcode_t)(4),
+/* 17 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8), // unsigned int
 };
 
 static int _cffi_const_ERR_OK(unsigned long long *o)
@@ -655,7 +656,7 @@ _cffi_f_last_error_code(PyObject *self, PyObject *noarg)
 
   (void)self; /* unused */
   (void)noarg; /* unused */
-  pyresult = _cffi_from_c_deref((char *)&result, _cffi_type(8));
+  pyresult = _cffi_from_c_deref((char *)&result, _cffi_type(9));
   return pyresult;
 }
 #else
@@ -681,16 +682,16 @@ _cffi_f_last_error_message(PyObject *self, PyObject *noarg)
 
   (void)self; /* unused */
   (void)noarg; /* unused */
-  pyresult = _cffi_from_c_pointer((char *)result, _cffi_type(9));
+  pyresult = _cffi_from_c_pointer((char *)result, _cffi_type(10));
   return pyresult;
 }
 #else
 #  define _cffi_f_last_error_message _cffi_d_last_error_message
 #endif
 
-static int _cffi_d_retrieve_wav_data(char * x0, struct HEADER * x1)
+static ErrorCode _cffi_d_retrieve_wav_data(char * x0, struct HEADER * x1, int * x2)
 {
-  return retrieve_wav_data(x0, x1);
+  return retrieve_wav_data(x0, x1, x2);
 }
 #ifndef PYPY_VERSION
 static PyObject *
@@ -698,42 +699,53 @@ _cffi_f_retrieve_wav_data(PyObject *self, PyObject *args)
 {
   char * x0;
   struct HEADER * x1;
+  int * x2;
   Py_ssize_t datasize;
   struct _cffi_freeme_s *large_args_free = NULL;
-  int result;
+  ErrorCode result;
   PyObject *pyresult;
   PyObject *arg0;
   PyObject *arg1;
+  PyObject *arg2;
 
-  if (!PyArg_UnpackTuple(args, "retrieve_wav_data", 2, 2, &arg0, &arg1))
+  if (!PyArg_UnpackTuple(args, "retrieve_wav_data", 3, 3, &arg0, &arg1, &arg2))
     return NULL;
 
   datasize = _cffi_prepare_pointer_call_argument(
-      _cffi_type(5), arg0, (char **)&x0);
+      _cffi_type(1), arg0, (char **)&x0);
   if (datasize != 0) {
     x0 = ((size_t)datasize) <= 640 ? (char *)alloca((size_t)datasize) : NULL;
-    if (_cffi_convert_array_argument(_cffi_type(5), arg0, (char **)&x0,
+    if (_cffi_convert_array_argument(_cffi_type(1), arg0, (char **)&x0,
             datasize, &large_args_free) < 0)
       return NULL;
   }
 
   datasize = _cffi_prepare_pointer_call_argument(
-      _cffi_type(6), arg1, (char **)&x1);
+      _cffi_type(2), arg1, (char **)&x1);
   if (datasize != 0) {
     x1 = ((size_t)datasize) <= 640 ? (struct HEADER *)alloca((size_t)datasize) : NULL;
-    if (_cffi_convert_array_argument(_cffi_type(6), arg1, (char **)&x1,
+    if (_cffi_convert_array_argument(_cffi_type(2), arg1, (char **)&x1,
+            datasize, &large_args_free) < 0)
+      return NULL;
+  }
+
+  datasize = _cffi_prepare_pointer_call_argument(
+      _cffi_type(3), arg2, (char **)&x2);
+  if (datasize != 0) {
+    x2 = ((size_t)datasize) <= 640 ? (int *)alloca((size_t)datasize) : NULL;
+    if (_cffi_convert_array_argument(_cffi_type(3), arg2, (char **)&x2,
             datasize, &large_args_free) < 0)
       return NULL;
   }
 
   Py_BEGIN_ALLOW_THREADS
   _cffi_restore_errno();
-  { result = retrieve_wav_data(x0, x1); }
+  { result = retrieve_wav_data(x0, x1, x2); }
   _cffi_save_errno();
   Py_END_ALLOW_THREADS
 
   (void)self; /* unused */
-  pyresult = _cffi_from_c_int(result, int);
+  pyresult = _cffi_from_c_deref((char *)&result, _cffi_type(9));
   if (large_args_free != NULL) _cffi_free_array_arguments(large_args_free);
   return pyresult;
 }
@@ -769,65 +781,65 @@ static const struct _cffi_global_s _cffi_globals[] = {
   { "ERR_IO", (void *)_cffi_const_ERR_IO, _CFFI_OP(_CFFI_OP_ENUM, -1), (void *)0 },
   { "ERR_OK", (void *)_cffi_const_ERR_OK, _CFFI_OP(_CFFI_OP_ENUM, -1), (void *)0 },
   { "ERR_OUT_OF_MEMORY", (void *)_cffi_const_ERR_OUT_OF_MEMORY, _CFFI_OP(_CFFI_OP_ENUM, -1), (void *)0 },
-  { "last_error_code", (void *)_cffi_f_last_error_code, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_N, 0), (void *)_cffi_d_last_error_code },
-  { "last_error_message", (void *)_cffi_f_last_error_message, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_N, 2), (void *)_cffi_d_last_error_message },
-  { "retrieve_wav_data", (void *)_cffi_f_retrieve_wav_data, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 4), (void *)_cffi_d_retrieve_wav_data },
+  { "last_error_code", (void *)_cffi_f_last_error_code, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_N, 5), (void *)_cffi_d_last_error_code },
+  { "last_error_message", (void *)_cffi_f_last_error_message, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_N, 7), (void *)_cffi_d_last_error_message },
+  { "retrieve_wav_data", (void *)_cffi_f_retrieve_wav_data, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 0), (void *)_cffi_d_retrieve_wav_data },
 };
 
 static const struct _cffi_field_s _cffi_fields[] = {
   { "riff", offsetof(struct HEADER, riff),
             sizeof(((struct HEADER *)0)->riff),
-            _CFFI_OP(_CFFI_OP_NOOP, 14) },
+            _CFFI_OP(_CFFI_OP_NOOP, 15) },
   { "overall_size", offsetof(struct HEADER, overall_size),
                     sizeof(((struct HEADER *)0)->overall_size),
-                    _CFFI_OP(_CFFI_OP_NOOP, 16) },
+                    _CFFI_OP(_CFFI_OP_NOOP, 17) },
   { "wave", offsetof(struct HEADER, wave),
             sizeof(((struct HEADER *)0)->wave),
-            _CFFI_OP(_CFFI_OP_NOOP, 14) },
+            _CFFI_OP(_CFFI_OP_NOOP, 15) },
   { "fmt_chunk_marker", offsetof(struct HEADER, fmt_chunk_marker),
                         sizeof(((struct HEADER *)0)->fmt_chunk_marker),
-                        _CFFI_OP(_CFFI_OP_NOOP, 14) },
+                        _CFFI_OP(_CFFI_OP_NOOP, 15) },
   { "length_of_fmt", offsetof(struct HEADER, length_of_fmt),
                      sizeof(((struct HEADER *)0)->length_of_fmt),
-                     _CFFI_OP(_CFFI_OP_NOOP, 16) },
+                     _CFFI_OP(_CFFI_OP_NOOP, 17) },
   { "format_type", offsetof(struct HEADER, format_type),
                    sizeof(((struct HEADER *)0)->format_type),
-                   _CFFI_OP(_CFFI_OP_NOOP, 16) },
+                   _CFFI_OP(_CFFI_OP_NOOP, 17) },
   { "channels", offsetof(struct HEADER, channels),
                 sizeof(((struct HEADER *)0)->channels),
-                _CFFI_OP(_CFFI_OP_NOOP, 16) },
+                _CFFI_OP(_CFFI_OP_NOOP, 17) },
   { "sample_rate", offsetof(struct HEADER, sample_rate),
                    sizeof(((struct HEADER *)0)->sample_rate),
-                   _CFFI_OP(_CFFI_OP_NOOP, 16) },
+                   _CFFI_OP(_CFFI_OP_NOOP, 17) },
   { "byterate", offsetof(struct HEADER, byterate),
                 sizeof(((struct HEADER *)0)->byterate),
-                _CFFI_OP(_CFFI_OP_NOOP, 16) },
+                _CFFI_OP(_CFFI_OP_NOOP, 17) },
   { "block_align", offsetof(struct HEADER, block_align),
                    sizeof(((struct HEADER *)0)->block_align),
-                   _CFFI_OP(_CFFI_OP_NOOP, 16) },
+                   _CFFI_OP(_CFFI_OP_NOOP, 17) },
   { "bits_per_sample", offsetof(struct HEADER, bits_per_sample),
                        sizeof(((struct HEADER *)0)->bits_per_sample),
-                       _CFFI_OP(_CFFI_OP_NOOP, 16) },
+                       _CFFI_OP(_CFFI_OP_NOOP, 17) },
   { "data_chunk_header", offsetof(struct HEADER, data_chunk_header),
                          sizeof(((struct HEADER *)0)->data_chunk_header),
-                         _CFFI_OP(_CFFI_OP_NOOP, 14) },
+                         _CFFI_OP(_CFFI_OP_NOOP, 15) },
   { "data_size", offsetof(struct HEADER, data_size),
                  sizeof(((struct HEADER *)0)->data_size),
-                 _CFFI_OP(_CFFI_OP_NOOP, 16) },
+                 _CFFI_OP(_CFFI_OP_NOOP, 17) },
 };
 
 static const struct _cffi_struct_union_s _cffi_struct_unions[] = {
-  { "HEADER", 12, _CFFI_F_CHECK_FIELDS,
+  { "HEADER", 13, _CFFI_F_CHECK_FIELDS,
     sizeof(struct HEADER), offsetof(struct _cffi_align_struct_HEADER, y), 0, 13 },
 };
 
 static const struct _cffi_enum_s _cffi_enums[] = {
-  { "$ErrorCode", 8, _cffi_prim_int(sizeof(ErrorCode), ((ErrorCode)-1) <= 0),
+  { "$ErrorCode", 9, _cffi_prim_int(sizeof(ErrorCode), ((ErrorCode)-1) <= 0),
     "ERR_OK,ERR_INVALID_ARG,ERR_IO,ERR_FORMAT,ERR_OUT_OF_MEMORY,ERR_INTERNAL" },
 };
 
 static const struct _cffi_typename_s _cffi_typenames[] = {
-  { "ErrorCode", 8 },
+  { "ErrorCode", 9 },
 };
 
 static const struct _cffi_type_context_s _cffi_type_context = {
@@ -842,7 +854,7 @@ static const struct _cffi_type_context_s _cffi_type_context = {
   1,  /* num_enums */
   1,  /* num_typenames */
   NULL,  /* no includes */
-  17,  /* num_types */
+  18,  /* num_types */
   0,  /* flags */
 };
 

@@ -15,8 +15,28 @@ struct HEADER {
 	unsigned int data_size;						// NumSamples * NumChannels * BitsPerSample/8 - size of the next chunk that will be read
 };
 
+typedef enum {
+    ERR_OK = 0,
+    ERR_INVALID_ARG,
+    ERR_IO,
+    ERR_FORMAT,
+    ERR_OUT_OF_MEMORY,
+    ERR_INTERNAL
+} ErrorCode;
+
+typedef struct {
+    ErrorCode code;
+    const char *msg;
+} ErrorContext;
+
+static void set_error(ErrorCode code, const char *msg);
+
+ErrorCode last_error_code(void);
+
+const char *last_error_message(void);
+
 // This function is used to retrive data in Wave file specified by its path in function parameters
-int retrieve_wav_data(char * filename, struct HEADER* out);
+ErrorCode retrieve_wav_data(char * filename, struct HEADER* header_output, int *data_output);
 
 // This function is used to calculate the amplidute envelope of a loaded wav file
 int amplitude_envelope(char * filename);

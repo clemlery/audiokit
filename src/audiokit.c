@@ -38,11 +38,8 @@ const char *last_error_message(void) {
     return last_error.msg ? last_error.msg : "";
 }
 
-ErrorCode retrieve_wav_data(char *filename, struct HEADER *out)
-{
-
-    printf("Size of struct header %ld", sizeof(struct HEADER));
-    
+ErrorCode retrieve_wav_data(char *filename, struct HEADER *header_output, int *data_output)
+{    
     struct HEADER header;
 
     // test if file exists
@@ -145,7 +142,6 @@ ErrorCode retrieve_wav_data(char *filename, struct HEADER *out)
     // calculate duration of file
     float duration_in_seconds = (float)header.overall_size / header.byterate;
 
-    int sample_data[header.channels];
     int data[num_samples * header.channels];
     char *error_message;
 
@@ -251,10 +247,11 @@ ErrorCode retrieve_wav_data(char *filename, struct HEADER *out)
 
     fclose(ptr);
 
-    *out = header;
+    *header_output = header;
+    *data_output = data;
     set_error(ERR_OK, NULL);
 
-    return 0;
+    return ERR_OK;
 }
 
 int amplitude_envelope(char *filename)
@@ -313,17 +310,3 @@ char *seconds_to_time(float raw_seconds)
     sprintf(hms, "%d:%d:%d.%d", hours, minutes, seconds, milliseconds);
     return hms;
 }
-
-
-// int main() {
-
-//     struct HEADER *out = (struct HEADER*)malloc(sizeof(struct HEADER));
-
-//     char *filename = "./data/file_example_WAV_2MG.wav";
-
-//     retrieve_wav_data(filename, out);
-
-//     printf("Channels : %u", out->channels);
-
-
-// }

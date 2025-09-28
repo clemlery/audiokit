@@ -44,7 +44,7 @@ const char *last_error_message(void);
 
 
 // This function is used to retrive data in Wave file specified by its path in function parameters
-ErrorCode retrieve_wav_data(char * filename, struct HEADER* out);
+ErrorCode retrieve_wav_data(char * filename, struct HEADER* header_output, int *data_output);
 
 // This function is used to calculate the amplidute envelope of a loaded wav file
 int amplitude_envelope(char * filename);
