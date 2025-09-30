@@ -6,7 +6,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include "audiokit.h"
+#include "audiokit_types.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -16,242 +19,219 @@
 unsigned char buffer4[4];
 unsigned char buffer2[2];
 
-
 FILE *ptr;
 
-static _Thread_local ErrorContext last_error = { ERR_OK, NULL };
-
+static _Thread_local ErrorContext last_error = {ERR_OK, NULL};
 
 // ########################################## ERROR HANDLERS ##########################################
 
-
-static void set_error(ErrorCode code, const char *msg) {
+static void set_error(ErrorCode code, const char *msg)
+{
     last_error.code = code;
-    last_error.msg  = msg;
+    last_error.msg = msg;
 }
 
-ErrorCode last_error_code(void) {
+ErrorCode last_error_code(void)
+{
     return last_error.code;
 }
 
-const char *last_error_message(void) {
+const char *last_error_message(void)
+{
     return last_error.msg ? last_error.msg : "";
 }
 
-ErrorCode retrieve_wav_data(char *filename, struct HEADER *header_output, int *data_output)
-{    
-    struct HEADER header;
+/**
+ * Reads the complete WAV header (RIFF + fmt + data)
+ * @param fp A pointer to a WAV file
+ * @return a struct representing the WAV header
+ */
+struct wav_header read_wav_header(FILE *fp)
+{
+    struct wav_header hdr;
+    memset(&hdr, 0, sizeof(hdr));
 
-    // test if file exists
-    if (access(filename, F_OK) == 1)
+    // RIFF
+    fread(hdr.chunk_id, 4, 1, fp);
+    hdr.chunk_id[4] = '\0';
+    fread(&hdr.chunk_size, 4, 1, fp);
+    fread(hdr.format, 4, 1, fp);
+    hdr.format[4] = '\0';
+
+    // fmt
+    fread(hdr.subchunk1_id, 4, 1, fp);
+    hdr.subchunk1_id[4] = '\0';
+    fread(&hdr.subchunk1_size, 4, 1, fp);
+    fread(&hdr.audio_format, 2, 1, fp);
+    fread(&hdr.num_channels, 2, 1, fp);
+    fread(&hdr.sample_rate, 4, 1, fp);
+    fread(&hdr.byte_rate, 4, 1, fp);
+    fread(&hdr.block_align, 2, 1, fp);
+    fread(&hdr.bits_per_sample, 2, 1, fp);
+
+    if (hdr.subchunk1_size > 16)
     {
-        set_error(ERR_IO, "This file doesn't exist");
-        return ERR_IO;
+        uint16_t extra_param_size;
+        fread(&extra_param_size, 2, 1, fp);
+        fseek(fp, extra_param_size, SEEK_CUR);
     }
 
-    // open file
-    ptr = fopen(filename, "rb");
-    if (ptr == NULL)
+    // data
+    fread(hdr.subchunk2_id, 4, 1, fp);
+    hdr.subchunk2_id[4] = '\0';
+    fread(&hdr.subchunk2_size, 4, 1, fp);
+
+    return hdr;
+}
+
+/**
+ * Reads the data subchunk of the WAV file and stores audio samples in a buffer.
+ * The buffer is allocated dynamically and must be freed by the caller.
+ *
+ * @param fp   A pointer to an open WAV file (already positioned at "data")
+ * @param ds   Pointer to a struct to store metadata (ID + size)
+ * @param buffer Pointer to unsigned char* that will point to audio data
+ * @return 0 on success, -1 on error
+ */
+int read_data_subchunk(FILE *fp, struct wav_header *hdr, unsigned char **buffer)
+{
+    if (!fp || !hdr || !buffer)
+        return -1;
+
+    // Allocation du buffer
+    *buffer = (unsigned char *)malloc(hdr->subchunk2_size);
+    if (!*buffer)
+        return -1;
+
+    // Lecture des données audio
+    size_t read_bytes = fread(*buffer, 1, hdr->subchunk2_size, fp);
+    if (read_bytes != hdr->subchunk2_size)
     {
-        set_error(ERR_IO, "Error opening file");
-        return ERR_IO;    
+        free(*buffer);
+        *buffer = NULL;
+        return -1;
     }
 
-    int read = 0;
+    return 0;
+}
 
-    // read header parts
-
-    read = fread(header.riff, sizeof(header.riff), 1, ptr);
-
-    read = fread(buffer4, sizeof(buffer4), 1, ptr);
-
-    // convert little endian to big endian 4 byte int
-    header.overall_size = buffer4[0] |
-                          (buffer4[1] << 8) |
-                          (buffer4[2] << 16) |
-                          (buffer4[3] << 24);
-
-
-    read = fread(header.wave, sizeof(header.wave), 1, ptr);
-
-    read = fread(header.fmt_chunk_marker, sizeof(header.fmt_chunk_marker), 1, ptr);
-
-    read = fread(buffer4, sizeof(buffer4), 1, ptr);
-
-    // convert little endian to big endian 4 byte integer
-    header.length_of_fmt = buffer4[0] |
-                           (buffer4[1] << 8) |
-                           (buffer4[2] << 16) |
-                           (buffer4[3] << 24);
-
-    read = fread(buffer2, sizeof(buffer2), 1, ptr);
-
-    header.format_type = buffer2[0] | (buffer2[1] << 8);
-    char format_name[10] = "";
-    if (header.format_type == 1)
-        strcpy(format_name, "PCM");
-    else if (header.format_type == 6)
-        strcpy(format_name, "A-law");
-    else if (header.format_type == 7)
-        strcpy(format_name, "Mu-law");
-
-
-    read = fread(buffer2, sizeof(buffer2), 1, ptr);
-
-    header.channels = buffer2[0] | (buffer2[1] << 8);
-
-    read = fread(buffer4, sizeof(buffer4), 1, ptr);
-
-    header.sample_rate = buffer4[0] |
-                         (buffer4[1] << 8) |
-                         (buffer4[2] << 16) |
-                         (buffer4[3] << 24);
-
-
-    read = fread(buffer4, sizeof(buffer4), 1, ptr);
-
-    header.byterate = buffer4[0] |
-                      (buffer4[1] << 8) |
-                      (buffer4[2] << 16) |
-                      (buffer4[3] << 24);
-
-    read = fread(buffer2, sizeof(buffer2), 1, ptr);
-
-    header.block_align = buffer2[0] |
-                         (buffer2[1] << 8);
-
-    read = fread(buffer2, sizeof(buffer2), 1, ptr);
-
-    header.bits_per_sample = buffer2[0] |
-                             (buffer2[1] << 8);
-
-    read = fread(header.data_chunk_header, sizeof(header.data_chunk_header), 1, ptr);
-
-    read = fread(buffer4, sizeof(buffer4), 1, ptr);
-
-    header.data_size = buffer4[0] |
-                       (buffer4[1] << 8) |
-                       (buffer4[2] << 16) |
-                       (buffer4[3] << 24);
-
-    // calculate no.of samples
-    long num_samples = (8 * header.data_size) / (header.channels * header.bits_per_sample);
-
-    long size_of_each_sample = (header.channels * header.bits_per_sample) / 8;
-
-    // calculate duration of file
-    float duration_in_seconds = (float)header.overall_size / header.byterate;
-
-    int data[num_samples * header.channels];
+ErrorCode read_data(FILE *fp, int channels, int num_samples, int bits_per_sample)
+{
+    long i = 0;
+    long data_index = 0;
+    long size_of_each_sample = (channels * bits_per_sample) / 8;
+    char data_buffer[size_of_each_sample];
+    int size_is_correct = TRUE;
     char *error_message;
 
-    // read each sample from data chunk if PCM
-    if (header.format_type == 1)
-    { // PCM
+    // make sure that the bytes-per-sample is completely divisible by num.of channels
+    long bytes_in_each_channel = (size_of_each_sample / channels);
+    if ((bytes_in_each_channel * channels) != size_of_each_sample)
+    {
+        sprintf(error_message, "Error wrong file format: %ld x %u <> %ld", bytes_in_each_channel, channels, size_of_each_sample);
+        set_error(ERR_FORMAT, error_message);
+        size_is_correct = FALSE;
+        return ERR_FORMAT;
+    }
 
-        long i = 0;
-        long data_index = 0;
-        char data_buffer[size_of_each_sample];
-        int size_is_correct = TRUE;
+    if (size_is_correct)
+    {
+        // the valid amplitude range for values based on the bits per sample
+        long low_limit = 0l;
+        long high_limit = 0l;
 
-        // make sure that the bytes-per-sample is completely divisible by num.of channels
-        long bytes_in_each_channel = (size_of_each_sample / header.channels);
-        if ((bytes_in_each_channel * header.channels) != size_of_each_sample)
+        switch (bits_per_sample)
         {
-            sprintf(error_message, "Error wrong file format: %ld x %u <> %ld", bytes_in_each_channel, header.channels, size_of_each_sample);
-            set_error(ERR_FORMAT,error_message);
-            size_is_correct = FALSE;
-            return ERR_FORMAT;
+        case 8:
+            low_limit = -128;
+            high_limit = 127;
+            break;
+        case 16:
+            low_limit = -32768;
+            high_limit = 32767;
+            break;
+        case 32:
+            low_limit = -2147483648;
+            high_limit = 2147483647;
+            break;
         }
 
-        if (size_is_correct)
+        for (i = 1; i <= num_samples; i++)
         {
-            // the valid amplitude range for values based on the bits per sample
-            long low_limit = 0l;
-            long high_limit = 0l;
-
-            switch (header.bits_per_sample)
+            int read = fread(data_buffer, sizeof(data_buffer), 1, ptr);
+            if (read == 1)
             {
-            case 8:
-                low_limit = -128;
-                high_limit = 127;
-                break;
-            case 16:
-                low_limit = -32768;
-                high_limit = 32767;
-                break;
-            case 32:
-                low_limit = -2147483648;
-                high_limit = 2147483647;
-                break;
-            }
 
-            printf("\n\nValid range for data values : %ld to %ld\n", low_limit, high_limit);
-            for (i = 1; i <= num_samples; i++)
-            {
-                read = fread(data_buffer, sizeof(data_buffer), 1, ptr);
-                if (read == 1)
+                // dump the data read
+                unsigned int xchannels = 0;
+                int data_in_channel = 0;
+                int offset = 0; // move the offset for every iteration in the loop below
+                for (xchannels = 0; xchannels < channels; xchannels++)
                 {
-
-                    // dump the data read
-                    unsigned int xchannels = 0;
-                    int data_in_channel = 0;
-                    int offset = 0; // move the offset for every iteration in the loop below
-                    for (xchannels = 0; xchannels < header.channels; xchannels++)
+                    // convert data from little endian to big endian based on bytes in each channel sample
+                    if (bytes_in_each_channel == 4)
                     {
-                        // convert data from little endian to big endian based on bytes in each channel sample
-                        if (bytes_in_each_channel == 4)
-                        {
-                            data_in_channel = (data_buffer[offset] & 0x00ff) |
-                                              ((data_buffer[offset + 1] & 0x00ff) << 8) |
-                                              ((data_buffer[offset + 2] & 0x00ff) << 16) |
-                                              (data_buffer[offset + 3] << 24);
-                        }
-                        else if (bytes_in_each_channel == 2)
-                        {
-                            data_in_channel = (data_buffer[offset] & 0x00ff) |
-                                              (data_buffer[offset + 1] << 8);
-                        }
-                        else if (bytes_in_each_channel == 1)
-                        {
-                            data_in_channel = data_buffer[offset] & 0x00ff;
-                            data_in_channel -= 128; // in wave, 8-bit are unsigned, so shifting to signed
-                        }
-
-                        offset += bytes_in_each_channel;
-
-                        // check if value was in range
-                        if (data_in_channel < low_limit || data_in_channel > high_limit) 
-                        {
-                            set_error(ERR_INTERNAL, "Value out of range")   ; 
-                            return ERR_INTERNAL;
-                        }
-
-                        data[data_index] = data_in_channel;
-                        data_index++;
+                        data_in_channel = (data_buffer[offset] & 0x00ff) |
+                                          ((data_buffer[offset + 1] & 0x00ff) << 8) |
+                                          ((data_buffer[offset + 2] & 0x00ff) << 16) |
+                                          (data_buffer[offset + 3] << 24);
+                    }
+                    else if (bytes_in_each_channel == 2)
+                    {
+                        data_in_channel = (data_buffer[offset] & 0x00ff) |
+                                          (data_buffer[offset + 1] << 8);
+                    }
+                    else if (bytes_in_each_channel == 1)
+                    {
+                        data_in_channel = data_buffer[offset] & 0x00ff;
+                        data_in_channel -= 128; // in wave, 8-bit are unsigned, so shifting to signed
                     }
 
+                    offset += bytes_in_each_channel;
+
+                    // check if value was in range
+                    if (data_in_channel < low_limit || data_in_channel > high_limit)
+                    {
+                        set_error(ERR_INTERNAL, "Value out of range");
+                        return ERR_INTERNAL;
+                    }
+
+                    data_index++;
                 }
-                else
-                {   
-                    sprintf(error_message, "Error reading file. %d bytes", read);
-                    set_error(ERR_INTERNAL, error_message);
-                    return ERR_INTERNAL;
-                }
+            }
+            else
+            {
+                sprintf(error_message, "Error reading file. %d bytes", read);
+                set_error(ERR_INTERNAL, error_message);
+                return ERR_INTERNAL;
+            }
 
-            } // 	for (i =1; i <= num_samples; i++) {
+        } // 	for (i =1; i <= num_samples; i++) {
 
-        } // 	if (size_is_correct) {
+    } // 	if (size_is_correct) {
+}
 
-    } //  if (header.format_type == 1) {
+/**
+ * Prints the read header from the WAV file
+ * @param wh a struct representing the WAV header
+ */
+void print_wav_header(struct wav_header wh)
+{
+    printf("ChunkID\t\t\t%s\n", wh.chunk_id);
+    printf("ChunkSize\t\t%" PRIu32 "\n", wh.chunk_size);
+    printf("Format\t\t\t%s\n\n", wh.format);
 
-    fclose(ptr);
+    printf("Subchunk1ID\t\t%s\n", wh.subchunk1_id);
+    printf("Subchunk1Size\t%" PRIu32 "\n", wh.subchunk1_size);
+    printf("AudioFormat\t\t%" PRIu16 "\n", wh.audio_format);
+    printf("NumChannels\t\t%" PRIu16 "\n", wh.num_channels);
+    printf("SampleRate\t\t%" PRIu32 "\n", wh.sample_rate);
+    printf("ByteRate\t\t%" PRIu32 "\n", wh.byte_rate);
+    printf("BlockAlign\t\t%" PRIu16 "\n", wh.block_align);
+    printf("BitsPerSample\t%" PRIu16 "\n\n", wh.bits_per_sample);
 
-    *header_output = header;
-    *data_output = data;
-    set_error(ERR_OK, NULL);
-
-    return ERR_OK;
+    printf("Subchunk2ID\t\t%s\n", wh.subchunk2_id);
+    printf("Subchunk2Size\t%" PRIu32 "\n", wh.subchunk2_size);
 }
 
 int amplitude_envelope(char *filename)
@@ -270,11 +250,6 @@ int zcr(char *filename)
 }
 
 // ########################################## ACCESSING META-DATA ##########################################
-
-
-
-
-
 
 // ########################################## HELPERS ##########################################
 
@@ -309,4 +284,49 @@ char *seconds_to_time(float raw_seconds)
 
     sprintf(hms, "%d:%d:%d.%d", hours, minutes, seconds, milliseconds);
     return hms;
+}
+
+int main(int argc, char **argv)
+{
+    FILE *fp;
+
+    if (argc == 2)
+    {
+        fp = fopen(argv[1], "rb");
+        struct wav_header wav_hdr = read_wav_header(fp);
+        print_wav_header(wav_hdr);
+        unsigned char *audio_buffer = NULL;
+
+        if (read_data_subchunk(fp, &wav_hdr, &audio_buffer) == 0)
+        {
+
+            // Afficher les 10 premiers octets pour vérification
+            printf("Premiers octets lus :\n");
+            int samples_index = 0;
+            for (int i = 0; i < 100 && i < wav_hdr.subchunk2_size; i++)
+            {
+                if (i % wav_hdr.bits_per_sample == 0)
+                {
+                    printf("\n");
+                    printf("%d. ", samples_index);
+                    samples_index++;
+                }
+                printf("%02X ", audio_buffer[i]);
+            }
+            printf("\n");
+
+            // Important : libérer la mémoire
+            free(audio_buffer);
+        }
+        else
+        {
+            fprintf(stderr, "Erreur lecture data subchunk\n");
+        }
+        fclose(fp);
+    }
+    else
+    {
+        printf("You must specify only one argument that must be the relative path to a WAV file.");
+    }
+    return 0;
 }

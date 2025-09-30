@@ -1,6 +1,7 @@
 #ifndef AUDIOKIT_H
-
 #define AUDIOKIT_H
+
+#include "audiokit_types.h"
 
 // WAVE file header format
 struct HEADER {
@@ -44,7 +45,7 @@ const char *last_error_message(void);
 
 
 // This function is used to retrive data in Wave file specified by its path in function parameters
-ErrorCode retrieve_wav_data(char * filename, struct HEADER* header_output, int *data_output);
+ErrorCode retrieve_wav_data(char * filename, struct HEADER* header_output, short *data_output);
 
 // This function is used to calculate the amplidute envelope of a loaded wav file
 int amplitude_envelope(char * filename);
@@ -59,5 +60,14 @@ int zcr(char * filename);
 
 char *seconds_to_time(float seconds);
 
+
+// ########################################## NEW METHODS ##########################################
+
+
+int check_file_format(FILE* fp);
+
+struct wav_header read_wav_header(FILE *fp);
+
+void print_wav_header(struct wav_header wh);
 
 #endif // AUDIOKIT_H

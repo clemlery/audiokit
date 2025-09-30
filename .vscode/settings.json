@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "compare": "c",
-        "cstdint": "c"
+        "cstdint": "c",
+        "audiokit_types.h": "c"
     }
 }
