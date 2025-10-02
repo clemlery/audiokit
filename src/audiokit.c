@@ -114,6 +114,38 @@ int read_data_subchunk(FILE *fp, struct wav_header *hdr, unsigned char **buffer)
     return 0;
 }
 
+void convert_data(struct wav_header *wh, unsigned char *buffer, int16_t **converted_buffer)
+{
+    const uint16_t channels = wh->num_channels;
+    const uint16_t bytes_per_sample = wh->bits_per_sample / 8; // supposé 2 ici
+    const uint16_t bytes_per_frame = wh->block_align;          // = channels * bytes_per_sample
+    const uint32_t data_size = wh->subchunk2_size;
+    const uint32_t nb_samples = data_size/bytes_per_sample;
+
+    *converted_buffer = (int16_t *)malloc(nb_samples * sizeof(int16_t));
+    int buffer_index = 0;
+
+    for (int f = 0; f < data_size/bytes_per_frame; ++f)
+    {
+
+        size_t base = (size_t)f * (size_t)bytes_per_frame;
+
+        for (int ch = 0; ch < channels; ++ch)
+        {
+            size_t off = base + (size_t)ch * (size_t)bytes_per_sample;
+
+            // Little-endian: low, high
+            uint16_t u = (uint16_t)buffer[off] | ((uint16_t)buffer[off + 1] << 8);
+            int16_t s = (int16_t)u; // interprétation signée (audio classique)
+
+            (*converted_buffer)[buffer_index] = s; 
+            buffer_index++;
+        }
+    }
+    printf("buffer index : %d\n", buffer_index);
+    return;
+}
+
 /**
  * Prints the read header from the WAV file
  * @param wh a struct representing the WAV header
@@ -139,34 +171,38 @@ void print_wav_header(struct wav_header wh)
 
 /**
  * Prints the data from the buffer data specified
+ * This code only works for a PCM format equal to 1, and a bits per sample value equal to 16
  * @param wh a struct representing the WAV header
  * @param buffer Pointer to unsigned char* that will point to audio data
  */
 void print_data(struct wav_header *wh, unsigned char *buffer, int frames_to_print)
 {
     const int channels = wh->num_channels;
-    const int bytes_per_sample = wh->bits_per_sample / 8;     // supposé 2 ici
-    const int bytes_per_frame  = wh->block_align;             // = channels * bytes_per_sample
+    const int bytes_per_sample = wh->bits_per_sample / 8; // supposé 2 ici
+    const int bytes_per_frame = wh->block_align;          // = channels * bytes_per_sample
 
-    if (wh->audio_format != 1 || wh->bits_per_sample != 16) {
+    if (wh->audio_format != 1 || wh->bits_per_sample != 16)
+    {
         fprintf(stderr, "Cette fonction suppose PCM 16-bit.\n");
         return;
     }
 
     int max_frames = (int)(wh->subchunk2_size / bytes_per_frame);
-    if (frames_to_print > max_frames) frames_to_print = max_frames;
+    if (frames_to_print > max_frames)
+        frames_to_print = max_frames;
 
-    for (int f = 0; f < frames_to_print; ++f) {
+    for (int f = 0; f < frames_to_print; ++f)
+    {
         size_t base = (size_t)f * (size_t)bytes_per_frame;
         printf("%d.", f);
 
-        for (int ch = 0; ch < channels; ++ch) {
+        for (int ch = 0; ch < channels; ++ch)
+        {
             size_t off = base + (size_t)ch * (size_t)bytes_per_sample;
 
             // Little-endian: low, high
-            uint16_t u = (uint16_t)buffer[off]
-                       | ((uint16_t)buffer[off + 1] << 8);
-            int16_t  s = (int16_t)u;  // interprétation signée (audio classique)
+            uint16_t u = (uint16_t)buffer[off] | ((uint16_t)buffer[off + 1] << 8);
+            int16_t s = (int16_t)u; // interprétation signée (audio classique)
 
             // Affiche signé (valeur audio) et non signé si tu veux comparer
             printf(" ch%d:%d(u=%u hex=0x%04X)", ch, (int)s, (unsigned)u, (unsigned)u);
@@ -259,7 +295,18 @@ int main(int argc, char **argv)
             printf("Premiers octets lus format entier :\n");
             print_data(&wav_hdr, audio_buffer, 50);
 
+            int16_t *converted_buffer = NULL;
+
+            convert_data(&wav_hdr, audio_buffer, &converted_buffer);
+
+            printf("Converted data :\n");
+
+            for (int i = 0; i < 50; i++) {
+                printf("sample %d  : %d\n", i, converted_buffer[i]);
+            }
+
             // Important : libérer la mémoire
+            free(converted_buffer);
             free(audio_buffer);
         }
         else

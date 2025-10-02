@@ -69,6 +69,8 @@ int check_file_format(FILE* fp);
 
 struct wav_header read_wav_header(FILE *fp);
 
+void convert_data(struct wav_header *wh, unsigned char *buffer, int16_t **converted_buffer);
+
 void print_wav_header(struct wav_header wh);
 
 void print_data(struct wav_header *wh, unsigned char *buffer, int samples_to_print);
