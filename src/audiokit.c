@@ -83,67 +83,107 @@ struct wav_header read_wav_header(FILE *fp)
     return hdr;
 }
 
-/**
- * Reads the data subchunk of the WAV file and stores audio samples in a buffer.
- * The buffer is allocated dynamically and must be freed by the caller.
- *
- * @param fp   A pointer to an open WAV file (already positioned at "data")
- * @param ds   Pointer to a struct to store metadata (ID + size)
- * @param buffer Pointer to unsigned char* that will point to audio data
- * @return 0 on success, -1 on error
- */
-int read_data_subchunk(FILE *fp, struct wav_header *hdr, unsigned char **buffer)
+int read_and_convert_data_s16le(FILE *fp,
+                                const struct wav_header *hdr,
+                                int16_t **out_samples,
+                                uint32_t *out_frames)
 {
-    if (!fp || !hdr || !buffer)
+    if (!fp || !hdr || !out_samples || !out_frames)
         return -1;
 
-    // Allocation du buffer
-    *buffer = (unsigned char *)malloc(hdr->subchunk2_size);
-    if (!*buffer)
-        return -1;
+    // Vérifs de format: PCM 16-bit little-endian
+    if (hdr->audio_format != 1)
+        return -2; // non-PCM
+    if (hdr->bits_per_sample != 16)
+        return -3; // non 16-bit
+    if (hdr->block_align != hdr->num_channels * 2)
+        return -4;
 
-    // Lecture des données audio
-    size_t read_bytes = fread(*buffer, 1, hdr->subchunk2_size, fp);
-    if (read_bytes != hdr->subchunk2_size)
+    const uint16_t channels = hdr->num_channels;
+    const uint16_t bytes_per_frame = hdr->block_align;
+    const uint32_t data_size = hdr->subchunk2_size;
+
+    if (data_size == 0)
+        return -5;
+    if ((data_size % bytes_per_frame) != 0)
+        return -6; // taille pas multiple d'une frame
+
+    const uint32_t frames = data_size / bytes_per_frame;
+    const size_t total_samples = (size_t)frames * (size_t)channels;
+
+    int16_t *dst = (int16_t *)malloc(total_samples * sizeof(int16_t));
+    if (!dst)
+        return -7;
+
+    // Lecture par blocs pour éviter un énorme buffer temporaire
+    // Taille cible ~64 KiB, ajustée pour tomber sur un nombre entier de frames
+    size_t target_bytes = 64 * 1024;
+    size_t frames_per_chunk = target_bytes / bytes_per_frame;
+    if (frames_per_chunk == 0)
+        frames_per_chunk = 1;
+    size_t chunk_bytes = frames_per_chunk * (size_t)bytes_per_frame;
+
+    unsigned char *chunk = (unsigned char *)malloc(chunk_bytes);
+    if (!chunk)
     {
-        free(*buffer);
-        *buffer = NULL;
-        return -1;
+        free(dst);
+        return -8;
     }
 
+    uint32_t frames_done = 0;
+    size_t out_idx = 0;
+
+    while (frames_done < frames)
+    {
+        uint32_t remaining = frames - frames_done;
+        size_t this_frames = remaining < frames_per_chunk ? remaining : frames_per_chunk;
+        size_t this_bytes = this_frames * (size_t)bytes_per_frame;
+
+        size_t got = fread(chunk, 1, this_bytes, fp);
+        if (got != this_bytes)
+        {
+            free(chunk);
+            free(dst);
+            return -9; // lecture incomplète/erreur
+        }
+
+        // Convertir ce bloc
+        for (size_t f = 0; f < this_frames; ++f)
+        {
+            size_t base = f * (size_t)bytes_per_frame;
+            for (uint16_t ch = 0; ch < channels; ++ch)
+            {
+                size_t off = base + (size_t)ch * 2; // 2 octets par sample
+                // Little-endian: low, high
+                uint16_t u = (uint16_t)chunk[off] | ((uint16_t)chunk[off + 1] << 8);
+                dst[out_idx++] = (int16_t)u;
+            }
+        }
+
+        frames_done += (uint32_t)this_frames;
+    }
+
+    free(chunk);
+
+    // Sorties
+    *out_samples = dst;
+    *out_frames = frames;
     return 0;
 }
 
-void convert_data(struct wav_header *wh, unsigned char *buffer, int16_t **converted_buffer)
+int retrieve_wav_data(char *filename, struct wav_header *out_wh, int16_t **out_samples, uint32_t *out_frames)
 {
-    const uint16_t channels = wh->num_channels;
-    const uint16_t bytes_per_sample = wh->bits_per_sample / 8; // supposé 2 ici
-    const uint16_t bytes_per_frame = wh->block_align;          // = channels * bytes_per_sample
-    const uint32_t data_size = wh->subchunk2_size;
-    const uint32_t nb_samples = data_size/bytes_per_sample;
+    // We initiate the file pointer 
+    FILE *fp;
+    // We open the file
+    fp = fopen(filename, "rb");
+    // We read the header of the wav file we opened
+    *out_wh = read_wav_header(fp);
+    // We initiate the pointers that allow us to store the wav file data
 
-    *converted_buffer = (int16_t *)malloc(nb_samples * sizeof(int16_t));
-    int buffer_index = 0;
 
-    for (int f = 0; f < data_size/bytes_per_frame; ++f)
-    {
-
-        size_t base = (size_t)f * (size_t)bytes_per_frame;
-
-        for (int ch = 0; ch < channels; ++ch)
-        {
-            size_t off = base + (size_t)ch * (size_t)bytes_per_sample;
-
-            // Little-endian: low, high
-            uint16_t u = (uint16_t)buffer[off] | ((uint16_t)buffer[off + 1] << 8);
-            int16_t s = (int16_t)u; // interprétation signée (audio classique)
-
-            (*converted_buffer)[buffer_index] = s; 
-            buffer_index++;
-        }
-    }
-    printf("buffer index : %d\n", buffer_index);
-    return;
+    int error_code = read_and_convert_data_s16le(fp, out_wh, out_samples, out_frames);
+    return error_code;
 }
 
 /**
@@ -263,61 +303,12 @@ char *seconds_to_time(float raw_seconds)
     return hms;
 }
 
-int main(int argc, char **argv)
-{
-    FILE *fp;
+// int main(int argc, char **argv)
+// {
+//     struct wav_header wh;
+//     int16_t *samples = NULL;
+//     uint32_t frames = 0;
+//     int error_code = retrieve_wav_data(argv[1], &wh, &samples, &frames);
 
-    if (argc == 2)
-    {
-        fp = fopen(argv[1], "rb");
-        struct wav_header wav_hdr = read_wav_header(fp);
-        print_wav_header(wav_hdr);
-        unsigned char *audio_buffer = NULL;
-
-        if (read_data_subchunk(fp, &wav_hdr, &audio_buffer) == 0)
-        {
-
-            // Afficher les 10 premiers octets pour vérification
-            printf("Premiers octets lus format hexadecimal :\n");
-            int samples_index = 0;
-            for (int i = 0; i < 100 && i < wav_hdr.subchunk2_size; i++)
-            {
-                if (i % wav_hdr.block_align == 0)
-                {
-                    printf("\n");
-                    printf("%d. ", samples_index);
-                    samples_index++;
-                }
-                printf("%02X ", audio_buffer[i]);
-            }
-            printf("\n");
-
-            printf("Premiers octets lus format entier :\n");
-            print_data(&wav_hdr, audio_buffer, 50);
-
-            int16_t *converted_buffer = NULL;
-
-            convert_data(&wav_hdr, audio_buffer, &converted_buffer);
-
-            printf("Converted data :\n");
-
-            for (int i = 0; i < 50; i++) {
-                printf("sample %d  : %d\n", i, converted_buffer[i]);
-            }
-
-            // Important : libérer la mémoire
-            free(converted_buffer);
-            free(audio_buffer);
-        }
-        else
-        {
-            fprintf(stderr, "Erreur lecture data subchunk\n");
-        }
-        fclose(fp);
-    }
-    else
-    {
-        printf("You must specify only one argument that must be the relative path to a WAV file.");
-    }
-    return 0;
-}
+//     return 0;
+// }

@@ -5,20 +5,25 @@ ffibuilder = FFI()
 
 # 1) Déclarations UNIQUEMENT (pas de directives #, pas de corps de fonction)
 ffibuilder.cdef("""
-    struct HEADER {
-        unsigned char riff[4];
-        unsigned int overall_size;
-        unsigned char wave[4];
-        unsigned char fmt_chunk_marker[4];
-        unsigned int length_of_fmt;
-        unsigned int format_type;
-        unsigned int channels;
-        unsigned int sample_rate;
-        unsigned int byterate;
-        unsigned int block_align;
-        unsigned int bits_per_sample;
-        unsigned char data_chunk_header[4];
-        unsigned int data_size;
+    struct wav_header {
+        // RIFF chunk descriptor
+        char     chunk_id[5];    // "RIFF"
+        uint32_t chunk_size;     // taille fichier - 8
+        char     format[5];      // "WAVE"
+
+        // fmt subchunk
+        char     subchunk1_id[5]; // "fmt "
+        uint32_t subchunk1_size;  // 16 pour PCM
+        uint16_t audio_format;    // 1 = PCM, 3 = IEEE float
+        uint16_t num_channels;    // 1 = mono, 2 = stéréo...
+        uint32_t sample_rate;     // ex: 44100
+        uint32_t byte_rate;       // sample_rate * num_channels * bits_per_sample/8
+        uint16_t block_align;     // num_channels * bits_per_sample/8
+        uint16_t bits_per_sample; // 8, 16, 24, 32
+
+        // data subchunk
+        char     subchunk2_id[5]; // "data"
+        uint32_t subchunk2_size;  // nombre d’octets de données
     };
     
     typedef enum {
@@ -30,7 +35,7 @@ ffibuilder.cdef("""
         ERR_INTERNAL
     } ErrorCode;
     
-    ErrorCode retrieve_wav_data(char * filename, struct HEADER* header_output, int *data_output);
+    int retrieve_wav_data(char *filename, struct wav_header *out_wh, int16_t **out_samples, uint32_t *out_frames);
     
     ErrorCode last_error_code(void);
 
@@ -40,9 +45,9 @@ ffibuilder.cdef("""
 # 2) Compilation de tes SOURCES .c (pas d'archive .a)
 ffibuilder.set_source(
     "_audiokit",                     # nom du module Python généré
-    '#include "audiokit_cffi.h"',    # petite “glue” C : inclut ton header public allégé
+    '#include "audiokit_cffi.h"',    # petite “glue” C : inclut header public allégé
     sources=["../src/audiokit.c"],      # <-- on compile directement tes .c en PIC
-    include_dirs=["../src/"],            # où trouver audiokit_cffi.h (et tes .h)
+    include_dirs=["../src/"],            
     # libraries=["sndfile", "fftw3"],# si tu dépends de libs externes
     # library_dirs=[...],            # si besoin de dossiers spéciaux pour ces libs externes
 )
