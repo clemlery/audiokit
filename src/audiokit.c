@@ -261,14 +261,65 @@ int rms(char *filename)
     return 0;
 }
 
-int zcr(char *filename)
-{
-    return 0;
+ErrorCode zero_crossing_rate(
+    const int16_t *samples,        // signal d'entrée
+    size_t N,                      // nombre d'échantillons
+    size_t frame_length,           // taille de fenêtre (ex: 2048)
+    size_t hop_length,             // pas entre fenêtres (ex: 512)
+    int center,                    // 1 = pad “centré” façon librosa, 0 = pas de pad
+    float *zcr_out,                // buffer de sortie (taille >= n_frames)
+    size_t *n_frames_out           // nombre de trames remplies
+) {
+    if (!samples || !zcr_out || !n_frames_out || frame_length < 2 || hop_length == 0)
+        return ERR_INVALID_ARG;
+
+    // Calcul du padding "center" (zero-padding)
+    size_t pad = center ? frame_length / 2 : 0;
+    // Nombre de trames (même logique que librosa: on balaye toute la zone paddée)
+    size_t total_len = N + 2 * pad;
+    size_t n_frames = (total_len < frame_length)
+                        ? 0
+                        : 1 + (total_len - frame_length) / hop_length;
+
+    *n_frames_out = n_frames;
+    if (n_frames == 0) return ERR_OK;
+
+    for (size_t f = 0; f < n_frames; ++f) {
+        size_t start = f * hop_length;
+        // Dans la zone paddée, les échantillons “hors signal” valent 0
+        // On itère sur les (frame_length - 1) paires consécutives
+        float acc = 0.0f;
+        for (size_t k = 1; k < frame_length; ++k) {
+            // indices dans le signal “paddé virtuellement”
+            size_t idx0 = start + k - 1;
+            size_t idx1 = start + k;
+
+            int16_t x0 = 0, x1 = 0;
+            // map de l’index paddé vers l’index réel [0..N)
+            if (idx0 >= pad && idx0 < pad + N) x0 = samples[idx0 - pad];
+            if (idx1 >= pad && idx1 < pad + N) x1 = samples[idx1 - pad];
+
+            int s0 = sgn_i16(x0);
+            int s1 = sgn_i16(x1);
+            // |sign(x[n]) - sign(x[n-1])| ∈ {0,1,2}
+            int diff = s1 - s0;
+            if (diff < 0) diff = -diff;
+            acc += (float)diff;
+        }
+        // zcr_frame = 0.5 * mean(diff)  = 0.5 * acc / (frame_length - 1)
+        zcr_out[f] = 0.5f * acc / (float)(frame_length - 1);
+    }
+    return ERR_OK;
 }
 
 // ########################################## ACCESSING META-DATA ##########################################
 
 // ########################################## HELPERS ##########################################
+
+
+static inline int sgn_i16(int16_t x) {
+    return (x > 0) - (x < 0);  // -1, 0, +1
+}
 
 /**
  * Convert seconds into hh:mm:ss format
@@ -276,7 +327,7 @@ int zcr(char *filename)
  *	seconds - seconds value
  * Returns: hms - formatted string
  **/
-char *seconds_to_time(float raw_seconds)
+static char *seconds_to_time(float raw_seconds)
 {
     char *hms;
     int hours, hours_residue, minutes, seconds, milliseconds;
@@ -303,12 +354,25 @@ char *seconds_to_time(float raw_seconds)
     return hms;
 }
 
-// int main(int argc, char **argv)
-// {
-//     struct wav_header wh;
-//     int16_t *samples = NULL;
-//     uint32_t frames = 0;
-//     int error_code = retrieve_wav_data(argv[1], &wh, &samples, &frames);
 
-//     return 0;
-// }
+int main(int argc, char **argv)
+{
+    struct wav_header wh;
+    int16_t *samples = NULL;
+    uint32_t frames = 0;
+    int error_code = retrieve_wav_data(argv[1], &wh, &samples, &frames);
+
+    print_wav_header(wh);
+    printf("Value of frames variable : %d\n", frames);
+
+    float *zcr_output;
+    size_t *n_frames;
+    
+    zero_crossing_rate(samples, frames, 2048, 512, 0, zcr_output, n_frames);
+
+    for (int i = 0; i < *n_frames; i++) {
+        printf("frame %d : %f", i, zcr_output[i]);
+    }
+
+    return 0;
+}

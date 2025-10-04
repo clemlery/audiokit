@@ -3,6 +3,8 @@ import _audiokit
 from typing import Final
 import numpy as np
 import matplotlib.pyplot as plt
+import random
+import librosa
 
 _ffi = _audiokit.ffi
 _lib = _audiokit.lib
@@ -29,6 +31,7 @@ class WaveData:
     data : list[int]
     frame_number : int
     sample_number : int
+    audio_length_s : float
 
 class ErrorHandler:
     def __init__(self):
@@ -42,7 +45,7 @@ class ErrorHandler:
     def handle_output(output : int) -> None:
         if output == 0: return
         
-        last_error_message = ErrorHandler.get_last_error_message()        
+        last_error_message = ErrorHandler.get_last_error_message()
 
         match output:
             case 1:
@@ -83,6 +86,9 @@ class AudiokitInterface:
         frame_number : int = int(c_frame)
         channels : int = int(c_header.num_channels)
         sample_number : int = frame_number*channels
+        data_size : int = int(c_header.subchunk2_size)
+        byterate : int = int(c_header.byte_rate)
+        audio_length_s : float = data_size/byterate
         
         # We create the dataclass to return 
         wave_data = WaveData(
@@ -95,16 +101,21 @@ class AudiokitInterface:
             format_type=int(c_header.audio_format),
             channels=int(c_header.num_channels),
             sample_rate=int(c_header.sample_rate),
-            byterate=int(c_header.byte_rate),
+            byterate=byterate,
             block_align=int(c_header.block_align),
             bits_per_sample=int(c_header.bits_per_sample),
-            data_size=int(c_header.subchunk2_size),
+            data_size=data_size,
             data= np.array(_ffi.unpack(c_data, sample_number)),
             frame_number= int(frame_number),
-            sample_number=sample_number
+            sample_number=sample_number,
+            audio_length_s=audio_length_s
         )
         
         return wave_data
+    
+    @staticmethod
+    def zero_crossing_rate() -> float:
+        pass
     
 class Audiokit:
     def __init__(self, filename : str = ""):
@@ -127,10 +138,31 @@ class Audiokit:
         self.data = wave_data.data
         self.frame_number = wave_data.frame_number
         self.sample_number = wave_data.sample_number
+        self.audio_length_s = wave_data.audio_length_s
         
 if __name__ == "__main__":
     audiokit = Audiokit(FILENAME)
-    print(f"audiokit channels : {audiokit.channels}")
 
+    sample_nb_represented : Final[int] = 1000
+    start_born : int = random.randint(0, audiokit.frame_number)
+    stop_born : int = 0
     
+    if start_born+sample_nb_represented > audiokit.frame_number:
+        stop_born = audiokit.frame_number-1
+    else: stop_born = start_born+sample_nb_represented
+    
+    byte_per_sample : int = audiokit.bits_per_sample/8
+    audio_length_ms : float = audiokit.audio_length_s*1000
+    
+    time_np = np.arange(0, audio_length_ms, audio_length_ms/audiokit.sample_number*2)
+    
+    
+    channel1 = audiokit.data[::2][start_born:stop_born]
+    channel2 = audiokit.data[1::2][start_born:stop_born]
+    time_np = time_np[start_born:stop_born]
+    
+    plt.plot(time_np, channel1, color='blue')
+    plt.plot(time_np, channel2, color='orange')
+    
+    plt.show()
         

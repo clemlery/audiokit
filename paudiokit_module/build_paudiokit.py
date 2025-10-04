@@ -37,6 +37,8 @@ ffibuilder.cdef("""
     
     int retrieve_wav_data(char *filename, struct wav_header *out_wh, int16_t **out_samples, uint32_t *out_frames);
     
+    ErrorCode zero_crossing_rate(int16_t *samples, int frame_number, float *zcr_output);
+    
     ErrorCode last_error_code(void);
 
     const char *last_error_message(void);
@@ -48,7 +50,6 @@ ffibuilder.set_source(
     '#include "audiokit_cffi.h"',    # petite “glue” C : inclut header public allégé
     sources=["../src/audiokit.c"],      # <-- on compile directement tes .c en PIC
     include_dirs=["../src/"],            
-    # libraries=["sndfile", "fftw3"],# si tu dépends de libs externes
     # library_dirs=[...],            # si besoin de dossiers spéciaux pour ces libs externes
 )
 

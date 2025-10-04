@@ -55,12 +55,21 @@ int amplitude_envelope(char * filename);
 int rms(char * filename);
 
 // This function is used to calculate the ZCR (zero-crossing rate) of a loaded wav file
-int zcr(char * filename);
+ErrorCode zero_crossing_rate(
+    const int16_t *samples,        // signal d'entrée
+    size_t N,                      // nombre d'échantillons
+    size_t frame_length,           // taille de fenêtre (ex: 2048)
+    size_t hop_length,             // pas entre fenêtres (ex: 512)
+    int center,                    // 1 = pad “centré” façon librosa, 0 = pas de pad
+    float *zcr_out,                // buffer de sortie (taille >= n_frames)
+    size_t *n_frames_out           // nombre de trames remplies
+);
 
 // ########################################## HELPERS ##########################################
 
-char *seconds_to_time(float seconds);
+static char *seconds_to_time(float seconds);
 
+static inline int sgn_i16(int16_t x);
 
 // ########################################## NEW METHODS ##########################################
 
