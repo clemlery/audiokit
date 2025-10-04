@@ -266,7 +266,7 @@ ErrorCode zero_crossing_rate(
     size_t frame_length,
     size_t hop_length,
     int center,
-    float **zcr_out, 
+    float **zcr_out,
     size_t *n_frames_out)
 {
     if (!samples || !zcr_out || !n_frames_out || frame_length < 2 || hop_length == 0)
@@ -366,25 +366,25 @@ static char *seconds_to_time(float raw_seconds)
     return hms;
 }
 
-int main(int argc, char **argv)
-{
-    struct wav_header wh;
-    int16_t *samples = NULL;
-    uint32_t frames = 0;
-    int error_code = retrieve_wav_data(argv[1], &wh, &samples, &frames);
+// int main(int argc, char **argv)
+// {
+//     struct wav_header wh;
+//     int16_t *samples = NULL;
+//     uint32_t frames = 0;
+//     int error_code = retrieve_wav_data(argv[1], &wh, &samples, &frames);
 
-    print_wav_header(wh);
-    printf("Value of frames variable : %d\n", frames);
+//     print_wav_header(wh);
+//     printf("Value of frames variable : %d\n", frames);
 
-    float *zcr_output = NULL;
-    size_t n_frames = 0;
+//     float *zcr_output = NULL;
+//     size_t n_frames = 0;
 
-    zero_crossing_rate(samples, frames, 2048, 512, 0, &zcr_output, &n_frames);
+//     zero_crossing_rate(samples, frames, 2048, 512, 0, &zcr_output, &n_frames);
 
-    for (int i = 0; i < n_frames; i++)
-    {
-        printf("frame %d : %f\n", i, zcr_output[i]);
-    }
-    free(zcr_output);
-    return 0;
-}
+//     for (int i = 0; i < n_frames; i++)
+//     {
+//         printf("frame %d : %f\n", i, zcr_output[i]);
+//     }
+//     free(zcr_output);
+//     return 0;
+// }
