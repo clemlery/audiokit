@@ -47,7 +47,15 @@ int amplitude_envelope(char * filename);
 int rms(char * filename);
 
 // This function is used to calculate the ZCR (zero-crossing rate) of a loaded wav file
-ErrorCode zero_crossing_rate(int16_t *samples, int frame_number, float *zcr_output)
+ErrorCode zero_crossing_rate(
+    const int16_t *samples,
+    size_t N,
+    size_t frame_length,
+    size_t hop_length,
+    int center,
+    float **zcr_out, 
+    size_t *n_frames_out
+);
 
 // This function is used to retrive data in Wave file specified by its path in function parameters
 int retrieve_wav_data(char *filename, struct wav_header *out_wh, int16_t **out_samples, uint32_t *out_frames);

@@ -114,9 +114,22 @@ class AudiokitInterface:
         return wave_data
     
     @staticmethod
-    def zero_crossing_rate() -> float:
-        pass
-    
+    def zero_crossing_rate(data : np.ndarray, frame_number : int, frame_length : int, hop_length : int, center : int) -> np.ndarray:
+        
+        z = _ffi.new("float **")
+        f = _ffi.new("size_t *")
+        
+        c_data = _ffi.cast('int16_t*', data.ctypes.data)
+        
+        output = _lib.zero_crossing_rate(c_data, frame_number, frame_length, hop_length, center, z, f)
+        
+        ErrorHandler.handle_output(output)
+        
+        c_zcr = z[0]
+        n_frame = int(f[0])
+                
+        return np.array(_ffi.unpack(c_zcr, n_frame))
+            
 class Audiokit:
     def __init__(self, filename : str = ""):
         
@@ -140,29 +153,45 @@ class Audiokit:
         self.sample_number = wave_data.sample_number
         self.audio_length_s = wave_data.audio_length_s
         
+    def zero_crossing_rate(self, frame_length : int, hop_length : int, center : int) -> np.ndarray:
+        return AudiokitInterface.zero_crossing_rate(self.data, self.frame_number, frame_length, hop_length, center)
+                
 if __name__ == "__main__":
     audiokit = Audiokit(FILENAME)
 
-    sample_nb_represented : Final[int] = 1000
-    start_born : int = random.randint(0, audiokit.frame_number)
-    stop_born : int = 0
+
+    print(f'audiokit frame number : {audiokit.frame_number}')
     
-    if start_born+sample_nb_represented > audiokit.frame_number:
-        stop_born = audiokit.frame_number-1
-    else: stop_born = start_born+sample_nb_represented
+    audiokit_zcr = audiokit.zero_crossing_rate(2048, 512, 0)
+    zcr_number = len(audiokit_zcr)
+
+    y, sr = librosa.load(FILENAME)
+    librosa_zcr = librosa.feature.zero_crossing_rate(y, frame_length=2048, hop_length=512, center=False)[0]
     
-    byte_per_sample : int = audiokit.bits_per_sample/8
-    audio_length_ms : float = audiokit.audio_length_s*1000
+    for i in range(10):
+        print(f"zero crossing rate audiokit {i} : {audiokit_zcr[i]}")
+        print(f"zero crossing rate librosa {i} : {librosa_zcr[i]}")
+
+    # sample_nb_represented : Final[int] = 1000
+    # start_born : int = random.randint(0, audiokit.frame_number)
+    # stop_born : int = 0
     
-    time_np = np.arange(0, audio_length_ms, audio_length_ms/audiokit.sample_number*2)
+    # if start_born+sample_nb_represented > audiokit.frame_number:
+    #     stop_born = audiokit.frame_number-1
+    # else: stop_born = start_born+sample_nb_represented
+    
+    # byte_per_sample : int = audiokit.bits_per_sample/8
+    # audio_length_ms : float = audiokit.audio_length_s*1000
+    
+    # time_np = np.arange(0, audio_length_ms, audio_length_ms/audiokit.sample_number*2)
     
     
-    channel1 = audiokit.data[::2][start_born:stop_born]
-    channel2 = audiokit.data[1::2][start_born:stop_born]
-    time_np = time_np[start_born:stop_born]
+    # channel1 = audiokit.data[::2][start_born:stop_born]
+    # channel2 = audiokit.data[1::2][start_born:stop_born]
+    # time_np = time_np[start_born:stop_born]
     
-    plt.plot(time_np, channel1, color='blue')
-    plt.plot(time_np, channel2, color='orange')
+    # plt.plot(time_np, channel1, color='blue')
+    # plt.plot(time_np, channel2, color='orange')
     
-    plt.show()
+    # plt.show()
         

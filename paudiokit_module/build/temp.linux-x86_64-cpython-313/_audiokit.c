@@ -575,27 +575,37 @@ static void (*_cffi_call_python_org)(struct _cffi_externpy_s *, char *);
 /************************************************************/
 
 static void *_cffi_types[] = {
-/*  0 */ _CFFI_OP(_CFFI_OP_FUNCTION, 10), // ErrorCode()(void)
-/*  1 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/*  2 */ _CFFI_OP(_CFFI_OP_FUNCTION, 11), // char const *()(void)
-/*  3 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/*  4 */ _CFFI_OP(_CFFI_OP_FUNCTION, 17), // int()(char *, struct wav_header *, int16_t * *, uint32_t *)
-/*  5 */ _CFFI_OP(_CFFI_OP_POINTER, 12), // char *
-/*  6 */ _CFFI_OP(_CFFI_OP_POINTER, 18), // struct wav_header *
-/*  7 */ _CFFI_OP(_CFFI_OP_POINTER, 15), // int16_t * *
-/*  8 */ _CFFI_OP(_CFFI_OP_POINTER, 20), // uint32_t *
-/*  9 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 10 */ _CFFI_OP(_CFFI_OP_ENUM, 0), // ErrorCode
-/* 11 */ _CFFI_OP(_CFFI_OP_POINTER, 12), // char const *
-/* 12 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 2), // char
-/* 13 */ _CFFI_OP(_CFFI_OP_ARRAY, 12), // char[5]
-/* 14 */ (_cffi_opcode_t)(5),
-/* 15 */ _CFFI_OP(_CFFI_OP_POINTER, 16), // int16_t *
-/* 16 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 19), // int16_t
-/* 17 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7), // int
-/* 18 */ _CFFI_OP(_CFFI_OP_STRUCT_UNION, 0), // struct wav_header
-/* 19 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 20), // uint16_t
-/* 20 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 22), // uint32_t
+/*  0 */ _CFFI_OP(_CFFI_OP_FUNCTION, 19), // ErrorCode()(int16_t const *, size_t, size_t, size_t, int, float * *, size_t *)
+/*  1 */ _CFFI_OP(_CFFI_OP_POINTER, 27), // int16_t const *
+/*  2 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 28), // size_t
+/*  3 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 28),
+/*  4 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 28),
+/*  5 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7), // int
+/*  6 */ _CFFI_OP(_CFFI_OP_POINTER, 24), // float * *
+/*  7 */ _CFFI_OP(_CFFI_OP_POINTER, 2), // size_t *
+/*  8 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/*  9 */ _CFFI_OP(_CFFI_OP_FUNCTION, 19), // ErrorCode()(void)
+/* 10 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 11 */ _CFFI_OP(_CFFI_OP_FUNCTION, 20), // char const *()(void)
+/* 12 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 13 */ _CFFI_OP(_CFFI_OP_FUNCTION, 5), // int()(char *, struct wav_header *, int16_t * *, uint32_t *)
+/* 14 */ _CFFI_OP(_CFFI_OP_POINTER, 21), // char *
+/* 15 */ _CFFI_OP(_CFFI_OP_POINTER, 28), // struct wav_header *
+/* 16 */ _CFFI_OP(_CFFI_OP_POINTER, 26), // int16_t * *
+/* 17 */ _CFFI_OP(_CFFI_OP_POINTER, 30), // uint32_t *
+/* 18 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 19 */ _CFFI_OP(_CFFI_OP_ENUM, 0), // ErrorCode
+/* 20 */ _CFFI_OP(_CFFI_OP_POINTER, 21), // char const *
+/* 21 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 2), // char
+/* 22 */ _CFFI_OP(_CFFI_OP_ARRAY, 21), // char[5]
+/* 23 */ (_cffi_opcode_t)(5),
+/* 24 */ _CFFI_OP(_CFFI_OP_POINTER, 25), // float *
+/* 25 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13), // float
+/* 26 */ _CFFI_OP(_CFFI_OP_POINTER, 27), // int16_t *
+/* 27 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 19), // int16_t
+/* 28 */ _CFFI_OP(_CFFI_OP_STRUCT_UNION, 0), // struct wav_header
+/* 29 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 20), // uint16_t
+/* 30 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 22), // uint32_t
 };
 
 static int _cffi_const_ERR_OK(unsigned long long *o)
@@ -659,7 +669,7 @@ _cffi_f_last_error_code(PyObject *self, PyObject *noarg)
 
   (void)self; /* unused */
   (void)noarg; /* unused */
-  pyresult = _cffi_from_c_deref((char *)&result, _cffi_type(10));
+  pyresult = _cffi_from_c_deref((char *)&result, _cffi_type(19));
   return pyresult;
 }
 #else
@@ -685,7 +695,7 @@ _cffi_f_last_error_message(PyObject *self, PyObject *noarg)
 
   (void)self; /* unused */
   (void)noarg; /* unused */
-  pyresult = _cffi_from_c_pointer((char *)result, _cffi_type(11));
+  pyresult = _cffi_from_c_pointer((char *)result, _cffi_type(20));
   return pyresult;
 }
 #else
@@ -717,37 +727,37 @@ _cffi_f_retrieve_wav_data(PyObject *self, PyObject *args)
     return NULL;
 
   datasize = _cffi_prepare_pointer_call_argument(
-      _cffi_type(5), arg0, (char **)&x0);
+      _cffi_type(14), arg0, (char **)&x0);
   if (datasize != 0) {
     x0 = ((size_t)datasize) <= 640 ? (char *)alloca((size_t)datasize) : NULL;
-    if (_cffi_convert_array_argument(_cffi_type(5), arg0, (char **)&x0,
+    if (_cffi_convert_array_argument(_cffi_type(14), arg0, (char **)&x0,
             datasize, &large_args_free) < 0)
       return NULL;
   }
 
   datasize = _cffi_prepare_pointer_call_argument(
-      _cffi_type(6), arg1, (char **)&x1);
+      _cffi_type(15), arg1, (char **)&x1);
   if (datasize != 0) {
     x1 = ((size_t)datasize) <= 640 ? (struct wav_header *)alloca((size_t)datasize) : NULL;
-    if (_cffi_convert_array_argument(_cffi_type(6), arg1, (char **)&x1,
+    if (_cffi_convert_array_argument(_cffi_type(15), arg1, (char **)&x1,
             datasize, &large_args_free) < 0)
       return NULL;
   }
 
   datasize = _cffi_prepare_pointer_call_argument(
-      _cffi_type(7), arg2, (char **)&x2);
+      _cffi_type(16), arg2, (char **)&x2);
   if (datasize != 0) {
     x2 = ((size_t)datasize) <= 640 ? (int16_t * *)alloca((size_t)datasize) : NULL;
-    if (_cffi_convert_array_argument(_cffi_type(7), arg2, (char **)&x2,
+    if (_cffi_convert_array_argument(_cffi_type(16), arg2, (char **)&x2,
             datasize, &large_args_free) < 0)
       return NULL;
   }
 
   datasize = _cffi_prepare_pointer_call_argument(
-      _cffi_type(8), arg3, (char **)&x3);
+      _cffi_type(17), arg3, (char **)&x3);
   if (datasize != 0) {
     x3 = ((size_t)datasize) <= 640 ? (uint32_t *)alloca((size_t)datasize) : NULL;
-    if (_cffi_convert_array_argument(_cffi_type(8), arg3, (char **)&x3,
+    if (_cffi_convert_array_argument(_cffi_type(17), arg3, (char **)&x3,
             datasize, &large_args_free) < 0)
       return NULL;
   }
@@ -765,6 +775,94 @@ _cffi_f_retrieve_wav_data(PyObject *self, PyObject *args)
 }
 #else
 #  define _cffi_f_retrieve_wav_data _cffi_d_retrieve_wav_data
+#endif
+
+static ErrorCode _cffi_d_zero_crossing_rate(int16_t const * x0, size_t x1, size_t x2, size_t x3, int x4, float * * x5, size_t * x6)
+{
+  return zero_crossing_rate(x0, x1, x2, x3, x4, x5, x6);
+}
+#ifndef PYPY_VERSION
+static PyObject *
+_cffi_f_zero_crossing_rate(PyObject *self, PyObject *args)
+{
+  int16_t const * x0;
+  size_t x1;
+  size_t x2;
+  size_t x3;
+  int x4;
+  float * * x5;
+  size_t * x6;
+  Py_ssize_t datasize;
+  struct _cffi_freeme_s *large_args_free = NULL;
+  ErrorCode result;
+  PyObject *pyresult;
+  PyObject *arg0;
+  PyObject *arg1;
+  PyObject *arg2;
+  PyObject *arg3;
+  PyObject *arg4;
+  PyObject *arg5;
+  PyObject *arg6;
+
+  if (!PyArg_UnpackTuple(args, "zero_crossing_rate", 7, 7, &arg0, &arg1, &arg2, &arg3, &arg4, &arg5, &arg6))
+    return NULL;
+
+  datasize = _cffi_prepare_pointer_call_argument(
+      _cffi_type(1), arg0, (char **)&x0);
+  if (datasize != 0) {
+    x0 = ((size_t)datasize) <= 640 ? (int16_t const *)alloca((size_t)datasize) : NULL;
+    if (_cffi_convert_array_argument(_cffi_type(1), arg0, (char **)&x0,
+            datasize, &large_args_free) < 0)
+      return NULL;
+  }
+
+  x1 = _cffi_to_c_int(arg1, size_t);
+  if (x1 == (size_t)-1 && PyErr_Occurred())
+    return NULL;
+
+  x2 = _cffi_to_c_int(arg2, size_t);
+  if (x2 == (size_t)-1 && PyErr_Occurred())
+    return NULL;
+
+  x3 = _cffi_to_c_int(arg3, size_t);
+  if (x3 == (size_t)-1 && PyErr_Occurred())
+    return NULL;
+
+  x4 = _cffi_to_c_int(arg4, int);
+  if (x4 == (int)-1 && PyErr_Occurred())
+    return NULL;
+
+  datasize = _cffi_prepare_pointer_call_argument(
+      _cffi_type(6), arg5, (char **)&x5);
+  if (datasize != 0) {
+    x5 = ((size_t)datasize) <= 640 ? (float * *)alloca((size_t)datasize) : NULL;
+    if (_cffi_convert_array_argument(_cffi_type(6), arg5, (char **)&x5,
+            datasize, &large_args_free) < 0)
+      return NULL;
+  }
+
+  datasize = _cffi_prepare_pointer_call_argument(
+      _cffi_type(7), arg6, (char **)&x6);
+  if (datasize != 0) {
+    x6 = ((size_t)datasize) <= 640 ? (size_t *)alloca((size_t)datasize) : NULL;
+    if (_cffi_convert_array_argument(_cffi_type(7), arg6, (char **)&x6,
+            datasize, &large_args_free) < 0)
+      return NULL;
+  }
+
+  Py_BEGIN_ALLOW_THREADS
+  _cffi_restore_errno();
+  { result = zero_crossing_rate(x0, x1, x2, x3, x4, x5, x6); }
+  _cffi_save_errno();
+  Py_END_ALLOW_THREADS
+
+  (void)self; /* unused */
+  pyresult = _cffi_from_c_deref((char *)&result, _cffi_type(19));
+  if (large_args_free != NULL) _cffi_free_array_arguments(large_args_free);
+  return pyresult;
+}
+#else
+#  define _cffi_f_zero_crossing_rate _cffi_d_zero_crossing_rate
 #endif
 
 _CFFI_UNUSED_FN
@@ -795,65 +893,66 @@ static const struct _cffi_global_s _cffi_globals[] = {
   { "ERR_IO", (void *)_cffi_const_ERR_IO, _CFFI_OP(_CFFI_OP_ENUM, -1), (void *)0 },
   { "ERR_OK", (void *)_cffi_const_ERR_OK, _CFFI_OP(_CFFI_OP_ENUM, -1), (void *)0 },
   { "ERR_OUT_OF_MEMORY", (void *)_cffi_const_ERR_OUT_OF_MEMORY, _CFFI_OP(_CFFI_OP_ENUM, -1), (void *)0 },
-  { "last_error_code", (void *)_cffi_f_last_error_code, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_N, 0), (void *)_cffi_d_last_error_code },
-  { "last_error_message", (void *)_cffi_f_last_error_message, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_N, 2), (void *)_cffi_d_last_error_message },
-  { "retrieve_wav_data", (void *)_cffi_f_retrieve_wav_data, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 4), (void *)_cffi_d_retrieve_wav_data },
+  { "last_error_code", (void *)_cffi_f_last_error_code, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_N, 9), (void *)_cffi_d_last_error_code },
+  { "last_error_message", (void *)_cffi_f_last_error_message, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_N, 11), (void *)_cffi_d_last_error_message },
+  { "retrieve_wav_data", (void *)_cffi_f_retrieve_wav_data, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 13), (void *)_cffi_d_retrieve_wav_data },
+  { "zero_crossing_rate", (void *)_cffi_f_zero_crossing_rate, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 0), (void *)_cffi_d_zero_crossing_rate },
 };
 
 static const struct _cffi_field_s _cffi_fields[] = {
   { "chunk_id", offsetof(struct wav_header, chunk_id),
                 sizeof(((struct wav_header *)0)->chunk_id),
-                _CFFI_OP(_CFFI_OP_NOOP, 13) },
+                _CFFI_OP(_CFFI_OP_NOOP, 22) },
   { "chunk_size", offsetof(struct wav_header, chunk_size),
                   sizeof(((struct wav_header *)0)->chunk_size),
-                  _CFFI_OP(_CFFI_OP_NOOP, 20) },
+                  _CFFI_OP(_CFFI_OP_NOOP, 30) },
   { "format", offsetof(struct wav_header, format),
               sizeof(((struct wav_header *)0)->format),
-              _CFFI_OP(_CFFI_OP_NOOP, 13) },
+              _CFFI_OP(_CFFI_OP_NOOP, 22) },
   { "subchunk1_id", offsetof(struct wav_header, subchunk1_id),
                     sizeof(((struct wav_header *)0)->subchunk1_id),
-                    _CFFI_OP(_CFFI_OP_NOOP, 13) },
+                    _CFFI_OP(_CFFI_OP_NOOP, 22) },
   { "subchunk1_size", offsetof(struct wav_header, subchunk1_size),
                       sizeof(((struct wav_header *)0)->subchunk1_size),
-                      _CFFI_OP(_CFFI_OP_NOOP, 20) },
+                      _CFFI_OP(_CFFI_OP_NOOP, 30) },
   { "audio_format", offsetof(struct wav_header, audio_format),
                     sizeof(((struct wav_header *)0)->audio_format),
-                    _CFFI_OP(_CFFI_OP_NOOP, 19) },
+                    _CFFI_OP(_CFFI_OP_NOOP, 29) },
   { "num_channels", offsetof(struct wav_header, num_channels),
                     sizeof(((struct wav_header *)0)->num_channels),
-                    _CFFI_OP(_CFFI_OP_NOOP, 19) },
+                    _CFFI_OP(_CFFI_OP_NOOP, 29) },
   { "sample_rate", offsetof(struct wav_header, sample_rate),
                    sizeof(((struct wav_header *)0)->sample_rate),
-                   _CFFI_OP(_CFFI_OP_NOOP, 20) },
+                   _CFFI_OP(_CFFI_OP_NOOP, 30) },
   { "byte_rate", offsetof(struct wav_header, byte_rate),
                  sizeof(((struct wav_header *)0)->byte_rate),
-                 _CFFI_OP(_CFFI_OP_NOOP, 20) },
+                 _CFFI_OP(_CFFI_OP_NOOP, 30) },
   { "block_align", offsetof(struct wav_header, block_align),
                    sizeof(((struct wav_header *)0)->block_align),
-                   _CFFI_OP(_CFFI_OP_NOOP, 19) },
+                   _CFFI_OP(_CFFI_OP_NOOP, 29) },
   { "bits_per_sample", offsetof(struct wav_header, bits_per_sample),
                        sizeof(((struct wav_header *)0)->bits_per_sample),
-                       _CFFI_OP(_CFFI_OP_NOOP, 19) },
+                       _CFFI_OP(_CFFI_OP_NOOP, 29) },
   { "subchunk2_id", offsetof(struct wav_header, subchunk2_id),
                     sizeof(((struct wav_header *)0)->subchunk2_id),
-                    _CFFI_OP(_CFFI_OP_NOOP, 13) },
+                    _CFFI_OP(_CFFI_OP_NOOP, 22) },
   { "subchunk2_size", offsetof(struct wav_header, subchunk2_size),
                       sizeof(((struct wav_header *)0)->subchunk2_size),
-                      _CFFI_OP(_CFFI_OP_NOOP, 20) },
+                      _CFFI_OP(_CFFI_OP_NOOP, 30) },
 };
 
 static const struct _cffi_struct_union_s _cffi_struct_unions[] = {
-  { "wav_header", 18, _CFFI_F_CHECK_FIELDS,
+  { "wav_header", 28, _CFFI_F_CHECK_FIELDS,
     sizeof(struct wav_header), offsetof(struct _cffi_align_struct_wav_header, y), 0, 13 },
 };
 
 static const struct _cffi_enum_s _cffi_enums[] = {
-  { "$ErrorCode", 10, _cffi_prim_int(sizeof(ErrorCode), ((ErrorCode)-1) <= 0),
+  { "$ErrorCode", 19, _cffi_prim_int(sizeof(ErrorCode), ((ErrorCode)-1) <= 0),
     "ERR_OK,ERR_INVALID_ARG,ERR_IO,ERR_FORMAT,ERR_OUT_OF_MEMORY,ERR_INTERNAL" },
 };
 
 static const struct _cffi_typename_s _cffi_typenames[] = {
-  { "ErrorCode", 10 },
+  { "ErrorCode", 19 },
 };
 
 static const struct _cffi_type_context_s _cffi_type_context = {
@@ -863,12 +962,12 @@ static const struct _cffi_type_context_s _cffi_type_context = {
   _cffi_struct_unions,
   _cffi_enums,
   _cffi_typenames,
-  9,  /* num_globals */
+  10,  /* num_globals */
   1,  /* num_struct_unions */
   1,  /* num_enums */
   1,  /* num_typenames */
   NULL,  /* no includes */
-  21,  /* num_types */
+  31,  /* num_types */
   0,  /* flags */
 };
 

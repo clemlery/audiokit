@@ -173,14 +173,13 @@ int read_and_convert_data_s16le(FILE *fp,
 
 int retrieve_wav_data(char *filename, struct wav_header *out_wh, int16_t **out_samples, uint32_t *out_frames)
 {
-    // We initiate the file pointer 
+    // We initiate the file pointer
     FILE *fp;
     // We open the file
     fp = fopen(filename, "rb");
     // We read the header of the wav file we opened
     *out_wh = read_wav_header(fp);
     // We initiate the pointers that allow us to store the wav file data
-
 
     int error_code = read_and_convert_data_s16le(fp, out_wh, out_samples, out_frames);
     return error_code;
@@ -262,53 +261,66 @@ int rms(char *filename)
 }
 
 ErrorCode zero_crossing_rate(
-    const int16_t *samples,        // signal d'entrée
-    size_t N,                      // nombre d'échantillons
-    size_t frame_length,           // taille de fenêtre (ex: 2048)
-    size_t hop_length,             // pas entre fenêtres (ex: 512)
-    int center,                    // 1 = pad “centré” façon librosa, 0 = pas de pad
-    float *zcr_out,                // buffer de sortie (taille >= n_frames)
-    size_t *n_frames_out           // nombre de trames remplies
-) {
+    const int16_t *samples,
+    size_t N,
+    size_t frame_length,
+    size_t hop_length,
+    int center,
+    float **zcr_out, 
+    size_t *n_frames_out)
+{
     if (!samples || !zcr_out || !n_frames_out || frame_length < 2 || hop_length == 0)
         return ERR_INVALID_ARG;
 
-    // Calcul du padding "center" (zero-padding)
     size_t pad = center ? frame_length / 2 : 0;
-    // Nombre de trames (même logique que librosa: on balaye toute la zone paddée)
     size_t total_len = N + 2 * pad;
     size_t n_frames = (total_len < frame_length)
-                        ? 0
-                        : 1 + (total_len - frame_length) / hop_length;
+                          ? 0
+                          : 1 + (total_len - frame_length) / hop_length;
 
     *n_frames_out = n_frames;
-    if (n_frames == 0) return ERR_OK;
 
-    for (size_t f = 0; f < n_frames; ++f) {
+    if (n_frames == 0)
+    {
+        *zcr_out = NULL;
+        return ERR_OK;
+    }
+
+    float *buf = malloc(n_frames * sizeof *buf);
+    if (!buf)
+        return ERR_OUT_OF_MEMORY; // selon tes codes d’erreur
+
+    for (size_t f = 0; f < n_frames; ++f)
+    {
         size_t start = f * hop_length;
         // Dans la zone paddée, les échantillons “hors signal” valent 0
         // On itère sur les (frame_length - 1) paires consécutives
         float acc = 0.0f;
-        for (size_t k = 1; k < frame_length; ++k) {
+        for (size_t k = 1; k < frame_length; ++k)
+        {
             // indices dans le signal “paddé virtuellement”
             size_t idx0 = start + k - 1;
             size_t idx1 = start + k;
 
             int16_t x0 = 0, x1 = 0;
             // map de l’index paddé vers l’index réel [0..N)
-            if (idx0 >= pad && idx0 < pad + N) x0 = samples[idx0 - pad];
-            if (idx1 >= pad && idx1 < pad + N) x1 = samples[idx1 - pad];
+            if (idx0 >= pad && idx0 < pad + N)
+                x0 = samples[idx0 - pad];
+            if (idx1 >= pad && idx1 < pad + N)
+                x1 = samples[idx1 - pad];
 
             int s0 = sgn_i16(x0);
             int s1 = sgn_i16(x1);
             // |sign(x[n]) - sign(x[n-1])| ∈ {0,1,2}
             int diff = s1 - s0;
-            if (diff < 0) diff = -diff;
+            if (diff < 0)
+                diff = -diff;
             acc += (float)diff;
         }
         // zcr_frame = 0.5 * mean(diff)  = 0.5 * acc / (frame_length - 1)
-        zcr_out[f] = 0.5f * acc / (float)(frame_length - 1);
+        buf[f] = 0.5f * acc / (float)(frame_length - 1);
     }
+    *zcr_out = buf;
     return ERR_OK;
 }
 
@@ -316,9 +328,9 @@ ErrorCode zero_crossing_rate(
 
 // ########################################## HELPERS ##########################################
 
-
-static inline int sgn_i16(int16_t x) {
-    return (x > 0) - (x < 0);  // -1, 0, +1
+static inline int sgn_i16(int16_t x)
+{
+    return (x > 0) - (x < 0); // -1, 0, +1
 }
 
 /**
@@ -354,7 +366,6 @@ static char *seconds_to_time(float raw_seconds)
     return hms;
 }
 
-
 int main(int argc, char **argv)
 {
     struct wav_header wh;
@@ -365,14 +376,15 @@ int main(int argc, char **argv)
     print_wav_header(wh);
     printf("Value of frames variable : %d\n", frames);
 
-    float *zcr_output;
-    size_t *n_frames;
-    
-    zero_crossing_rate(samples, frames, 2048, 512, 0, zcr_output, n_frames);
+    float *zcr_output = NULL;
+    size_t n_frames = 0;
 
-    for (int i = 0; i < *n_frames; i++) {
-        printf("frame %d : %f", i, zcr_output[i]);
+    zero_crossing_rate(samples, frames, 2048, 512, 0, &zcr_output, &n_frames);
+
+    for (int i = 0; i < n_frames; i++)
+    {
+        printf("frame %d : %f\n", i, zcr_output[i]);
     }
-
+    free(zcr_output);
     return 0;
 }

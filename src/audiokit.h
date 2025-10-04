@@ -56,13 +56,13 @@ int rms(char * filename);
 
 // This function is used to calculate the ZCR (zero-crossing rate) of a loaded wav file
 ErrorCode zero_crossing_rate(
-    const int16_t *samples,        // signal d'entrée
-    size_t N,                      // nombre d'échantillons
-    size_t frame_length,           // taille de fenêtre (ex: 2048)
-    size_t hop_length,             // pas entre fenêtres (ex: 512)
-    int center,                    // 1 = pad “centré” façon librosa, 0 = pas de pad
-    float *zcr_out,                // buffer de sortie (taille >= n_frames)
-    size_t *n_frames_out           // nombre de trames remplies
+    const int16_t *samples,
+    size_t N,
+    size_t frame_length,
+    size_t hop_length,
+    int center,
+    float **zcr_out, 
+    size_t *n_frames_out
 );
 
 // ########################################## HELPERS ##########################################
