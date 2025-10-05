@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import _audiokit
 from typing import Final
 import numpy as np
+import librosa
 
 _ffi = _audiokit.ffi
 _lib = _audiokit.lib
@@ -165,10 +166,12 @@ if __name__ == "__main__":
     audiokit = Audiokit(FILENAME)
     y, sr = librosa.load(FILENAME, sr=None, mono=False)
 
-    
-    audiokit_zcr_ch1 = audiokit.zero_crossing_rate(2048, 512, 0)[0]
+    librosa_ch1 = y[0]
+    audiokit_ch1 = audiokit.data[0]
 
-
+    for i in range(10):
+        print(f'{i}. audiokit value : {audiokit_ch1[i]}')
+        print(f'{i}. librosa value : {librosa_ch1[i]}')
     
 
 

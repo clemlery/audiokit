@@ -6,6 +6,8 @@ import librosa
 from paudiokit_module.audiokit.audiokit import Audiokit  # <-- si ta classe est importée ainsi
 from typing import Final
 
+FILENAME : Final[str] = "./data/file_example_WAV_2MG.wav"
+
 # ------------------------------------------------------------
 # 🔧 Configuration du benchmark
 # ------------------------------------------------------------
