@@ -85,7 +85,7 @@ struct wav_header read_wav_header(FILE *fp)
 
 int read_and_convert_data_s16le(FILE *fp,
                                 const struct wav_header *hdr,
-                                int16_t **out_samples,
+                                float **out_samples,
                                 uint32_t *out_frames)
 {
     if (!fp || !hdr || !out_samples || !out_frames)
@@ -111,7 +111,7 @@ int read_and_convert_data_s16le(FILE *fp,
     const uint32_t frames = data_size / bytes_per_frame;
     const size_t total_samples = (size_t)frames * (size_t)channels;
 
-    int16_t *dst = (int16_t *)malloc(total_samples * sizeof(int16_t));
+    float *dst = (float *)malloc(total_samples * sizeof(float));
     if (!dst)
         return -7;
 
@@ -147,7 +147,6 @@ int read_and_convert_data_s16le(FILE *fp,
             return -9; // lecture incomplète/erreur
         }
 
-        // Convertir ce bloc
         for (size_t f = 0; f < this_frames; ++f)
         {
             size_t base = f * (size_t)bytes_per_frame;
@@ -156,7 +155,8 @@ int read_and_convert_data_s16le(FILE *fp,
                 size_t off = base + (size_t)ch * 2; // 2 octets par sample
                 // Little-endian: low, high
                 uint16_t u = (uint16_t)chunk[off] | ((uint16_t)chunk[off + 1] << 8);
-                dst[out_idx++] = (int16_t)u;
+                int16_t  s = (int16_t)u;
+                dst[out_idx++] = (float)s/32768.0f;
             }
         }
 
@@ -171,7 +171,7 @@ int read_and_convert_data_s16le(FILE *fp,
     return 0;
 }
 
-int retrieve_wav_data(char *filename, struct wav_header *out_wh, int16_t **out_samples, uint32_t *out_frames)
+int retrieve_wav_data(char *filename, struct wav_header *out_wh, float **out_samples, uint32_t *out_frames)
 {
     // We initiate the file pointer
     FILE *fp;
@@ -366,25 +366,31 @@ static char *seconds_to_time(float raw_seconds)
     return hms;
 }
 
-// int main(int argc, char **argv)
-// {
-//     struct wav_header wh;
-//     int16_t *samples = NULL;
-//     uint32_t frames = 0;
-//     int error_code = retrieve_wav_data(argv[1], &wh, &samples, &frames);
+int main(int argc, char **argv)
+{
+    struct wav_header wh;
+    float *samples = NULL;
+    uint32_t frames = 0;
+    int error_code = retrieve_wav_data(argv[1], &wh, &samples, &frames);
 
-//     print_wav_header(wh);
-//     printf("Value of frames variable : %d\n", frames);
+    print_wav_header(wh);
+    printf("Value of frames variable : %d\n", frames);
 
-//     float *zcr_output = NULL;
-//     size_t n_frames = 0;
+    printf("First 100 values of data : \n");
 
-//     zero_crossing_rate(samples, frames, 2048, 512, 0, &zcr_output, &n_frames);
+    for (int i = 0; i < 100; i++) {
+        printf("%d. : %f\n", i, samples[i]);
+    }
 
-//     for (int i = 0; i < n_frames; i++)
-//     {
-//         printf("frame %d : %f\n", i, zcr_output[i]);
-//     }
-//     free(zcr_output);
-//     return 0;
-// }
+    // float *zcr_output = NULL;
+    // size_t n_frames = 0;
+
+    // zero_crossing_rate(samples, frames, 2048, 512, 0, &zcr_output, &n_frames);
+
+    // for (int i = 0; i < n_frames; i++)
+    // {
+    //     printf("frame %d : %f\n", i, zcr_output[i]);
+    // }
+    // free(zcr_output);
+    return 0;
+}

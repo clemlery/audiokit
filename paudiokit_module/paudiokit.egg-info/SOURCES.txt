@@ -5,3 +5,4 @@ paudiokit.egg-info/SOURCES.txt
 paudiokit.egg-info/dependency_links.txt
 paudiokit.egg-info/requires.txt
 paudiokit.egg-info/top_level.txt
+test/test.py

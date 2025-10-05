@@ -58,5 +58,5 @@ ErrorCode zero_crossing_rate(
 );
 
 // This function is used to retrive data in Wave file specified by its path in function parameters
-int retrieve_wav_data(char *filename, struct wav_header *out_wh, int16_t **out_samples, uint32_t *out_frames);
+int retrieve_wav_data(char *filename, struct wav_header *out_wh, float **out_samples, uint32_t *out_frames);
 

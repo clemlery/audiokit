@@ -67,7 +67,7 @@ class AudiokitInterface:
     def retrieve_wav_data(filename : str) -> WaveData:
         # We initialize the pointer of type struct HEADER that 
         h = _ffi.new("struct wav_header *")
-        s = _ffi.new("int16_t **")
+        s = _ffi.new("float **")
         f = _ffi.new("uint32_t *")
         
         # We read the wav file and retrieve all of his data (header and content)
@@ -166,8 +166,8 @@ if __name__ == "__main__":
     audiokit = Audiokit(FILENAME)
     y, sr = librosa.load(FILENAME, sr=None, mono=False)
 
-    librosa_ch1 = y[0]
-    audiokit_ch1 = audiokit.data[0]
+    librosa_ch1 = y[1]
+    audiokit_ch1 = audiokit.data[1]
 
     for i in range(10):
         print(f'{i}. audiokit value : {audiokit_ch1[i]}')

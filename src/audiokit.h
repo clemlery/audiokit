@@ -78,9 +78,13 @@ int check_file_format(FILE* fp);
 
 struct wav_header read_wav_header(FILE *fp);
 
-int read_and_convert_data_s16le(FILE *fp, const struct wav_header *hdr, int16_t **out_samples, uint32_t *out_frames);
+int read_and_convert_data_s16le(FILE *fp,
+                                const struct wav_header *hdr,
+                                float **out_samples,
+                                uint32_t *out_frames
+);
 
-int retrieve_wav_data(char *filename, struct wav_header *out_wh, int16_t **out_samples, uint32_t *out_frames);
+int retrieve_wav_data(char *filename, struct wav_header *out_wh, float **out_samples, uint32_t *out_frames);
 
 void print_wav_header(struct wav_header wh);
 

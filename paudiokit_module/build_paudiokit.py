@@ -35,7 +35,7 @@ ffibuilder.cdef("""
         ERR_INTERNAL
     } ErrorCode;
     
-    int retrieve_wav_data(char *filename, struct wav_header *out_wh, int16_t **out_samples, uint32_t *out_frames);
+    int retrieve_wav_data(char *filename, struct wav_header *out_wh, float **out_samples, uint32_t *out_frames);
     
     ErrorCode zero_crossing_rate(
         const int16_t *samples,
