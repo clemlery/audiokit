@@ -3,7 +3,7 @@ import time
 import gc
 import numpy as np
 import librosa
-from paudiokit_module.audiokit.audiokit import Audiokit  # <-- si ta classe est importée ainsi
+from audiokit.audiokit import Audiokit 
 from typing import Final
 
 FILENAME : Final[str] = "./data/file_example_WAV_2MG.wav"

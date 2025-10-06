@@ -12,6 +12,7 @@ FILENAME : Final[str] = "./data/file_example_WAV_2MG.wav"
 
 # ################################ HELPERS ################################
 
+# Dataclass used to store all useful data about the wav file loaded.
 @dataclass
 class WaveData:
     riff : str
@@ -32,16 +33,28 @@ class WaveData:
     sample_number : int
     audio_length_s : float
 
+
+# Class used to handling errors code outputed by the function C side.
 class ErrorHandler:
     def __init__(self):
         pass
     
+    # We retrieve the last error message define C side 
     def get_last_error_message() -> str:
+        """
+        PEP - 257 format
+        TODO 
+        """
         c_error_message = _lib.last_error_message()
         message_bytes_size = _ffi.sizeof(c_error_message)
         return bytes(_ffi.buffer(c_error_message, message_bytes_size)).decode("ascii", errors="replace")
     
+    # We convert the error code outputed into a comprehensible python Exception
     def handle_output(output : int) -> None:
+        """
+        PEP - 257 format
+        TODO 
+        """
         if output == 0: return
         
         last_error_message = ErrorHandler.get_last_error_message()
@@ -65,6 +78,11 @@ class AudiokitInterface:
     
     @staticmethod
     def retrieve_wav_data(filename : str) -> WaveData:
+        """
+        PEP - 257 format
+        TODO 
+        """
+        
         # We initialize the pointer of type struct HEADER that 
         h = _ffi.new("struct wav_header *")
         s = _ffi.new("float **")
@@ -118,6 +136,10 @@ class AudiokitInterface:
     
     @staticmethod
     def zero_crossing_rate(data : np.ndarray, frame_number : int, frame_length : int, hop_length : int, center : int) -> np.ndarray:
+        """
+        PEP - 257 format
+        TODO 
+        """
         
         z = _ffi.new("float **")
         f = _ffi.new("size_t *")
@@ -135,7 +157,10 @@ class AudiokitInterface:
             
 class Audiokit:
     def __init__(self, filename : str = ""):
-        
+        """
+        PEP - 257 format
+        TODO 
+        """
         wave_data : WaveData = AudiokitInterface.retrieve_wav_data(filename=filename)
         
         self.riff   = wave_data.riff
@@ -157,6 +182,10 @@ class Audiokit:
         self.audio_length_s = wave_data.audio_length_s
         
     def zero_crossing_rate(self, frame_length : int, hop_length : int, center : int) -> np.ndarray:
+        """
+        PEP - 257 format
+        TODO 
+        """
         return np.array(
             [AudiokitInterface.zero_crossing_rate(self.data[0], self.frame_number, frame_length, hop_length, center),
             AudiokitInterface.zero_crossing_rate(self.data[1], self.frame_number, frame_length, hop_length, center)]
