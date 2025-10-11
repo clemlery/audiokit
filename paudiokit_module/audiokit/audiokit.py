@@ -43,6 +43,83 @@ def zero_crossings(
     z = np.swapaxes(z, axis, -1)
     return z
 
+def zero_crossing_rate_fast(y: np.ndarray,
+                            *,
+                            frame_length: int = 2048,
+                            hop_length: int = 512,
+                            threshold: float = 1e-10,
+                            pad: bool = True,
+                            zero_pos: bool = True,
+                            axis: int = -1) -> np.ndarray:
+    """
+    Version optimisée du Zero Crossing Rate (ZCR) de librosa.
+    """
+    # 1) Détection des crossings échantillon par échantillon
+    zc = zero_crossings_fast(y, threshold=threshold, pad=pad, zero_pos=zero_pos, axis=axis)
+
+    # 2) Mise en forme sur la dernière dimension (temps)
+    if axis != -1:
+        zc = np.moveaxis(zc, axis, -1)
+
+    # 3) Calcul du nombre de frames
+    n_frames = 1 + (zc.shape[-1] - frame_length) // hop_length
+    shape = zc.shape[:-1] + (n_frames, frame_length)
+    strides = zc.strides[:-1] + (hop_length * zc.strides[-1], zc.strides[-1])
+
+    # 4) Fenêtrage sans copie mémoire (strided)
+    frames = np.lib.stride_tricks.as_strided(zc, shape=shape, strides=strides)
+
+    # 5) Moyenne sur chaque frame (=> ZCR)
+    zcr = frames.mean(axis=-1)
+
+    # 6) Remettre les axes si nécessaire
+    if axis != -1:
+        zcr = np.moveaxis(zcr, -1, axis)
+
+    return zcr
+
+def zero_crossings_fast(y: np.ndarray,
+                        *,
+                        threshold: float = 1e-10,
+                        pad: bool = True,
+                        zero_pos: bool = True,
+                        axis: int = -1) -> np.ndarray:
+    # 1) Mise en forme: pas de copie si possible, dtype compact
+    y = np.asarray(y)
+    if y.dtype != np.float32:
+        y = y.astype(np.float32, copy=False)
+
+    # 2) On travaille sur la dernière dimension (une seule permutation)
+    if axis != -1:
+        y = np.moveaxis(y, axis, -1)
+
+    # 3) Seuil: ne copie QUE si on modifie
+    if threshold > 0:
+        y = y.copy()  # on va écrire dedans
+        np.putmask(y, np.abs(y) <= threshold, 0.0)
+
+    # 4) Calcul des sauts
+    out = np.empty_like(y, dtype=bool)  # même shape, bool
+    out[..., 0] = pad
+
+    if zero_pos:
+        # Zéro considéré comme positif -> signbit False pour 0 et positif
+        neg = np.signbit(y)                          # bool
+        np.logical_xor(neg[..., 1:], neg[..., :-1], out=out[..., 1:])
+    else:
+        # Vraie tri-valence: -1 / 0 / +1 en int8 (léger)
+        s = np.empty_like(y, dtype=np.int8)
+        s.fill(1)
+        s[y < 0] = -1
+        s[y == 0] = 0
+        np.not_equal(s[..., 1:], s[..., :-1], out=out[..., 1:])
+
+    # 5) Replacer l’axe si besoin (une seule permutation retour)
+    if axis != -1:
+        out = np.moveaxis(out, -1, axis)
+
+    return out
+
 # Librosa frame function implementation:
 def frame(
     x: np.ndarray,

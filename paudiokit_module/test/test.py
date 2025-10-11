@@ -3,7 +3,7 @@ import time
 import gc
 import numpy as np
 import librosa
-from audiokit.audiokit import Audiokit 
+from audiokit.audiokit import Audiokit, zero_crossing_rate, zero_crossing_rate_fast, zero_crossings_fast 
 from typing import Final
 
 FILENAME : Final[str] = "./data/file_example_WAV_2MG.wav"
@@ -34,7 +34,11 @@ y_ch1 = y[0] if y.ndim == 2 else y
 # ⚙️ Définition des fonctions à benchmarker
 # ------------------------------------------------------------
 def run_audiokit():
-    return audiokit.zero_crossing_rate(FRAME_LENGTH, HOP_LENGTH, CENTER)[0]
+    return zero_crossing_rate_fast(
+        y_ch1,
+        frame_length=FRAME_LENGTH,
+        hop_length=HOP_LENGTH,
+    )
 
 def run_librosa():
     return librosa.feature.zero_crossing_rate(
