@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 import _audiokit
-from typing import Final
+from typing import Any, Final, Optional, Callable, Union
 import numpy as np
 import librosa
+from numpy.lib.stride_tricks import as_strided
+
 
 _ffi = _audiokit.ffi
 _lib = _audiokit.lib
@@ -11,6 +13,104 @@ FILENAME : Final[str] = "./data/file_example_WAV_2MG.wav"
 
 
 # ################################ HELPERS ################################
+
+
+# Librosa zero_crossings function implementation 
+def zero_crossings(
+    y : np.ndarray,
+    *,
+    threshold: float = 1e-10,
+    pad : bool = True,
+    zero_pos : bool = True,
+    axis : int = -1) -> np.ndarray:
+    y = np.array(y, copy=True)
+
+    if threshold > 0:
+        y[np.abs(y) <= threshold] = 0.0
+
+    if zero_pos:
+        s = np.where(y < 0, -1, 1)      
+    else:
+        s = np.zeros_like(y, dtype=int) 
+        s[y > 0] = 1
+        s[y < 0] = -1
+
+    s = np.swapaxes(s, axis, -1)
+    jumps = s[..., 1:] != s[..., :-1] 
+
+    first = np.full(s.shape[:-1] + (1,), pad, dtype=bool)
+    z = np.concatenate([first, jumps], axis=-1)
+    z = np.swapaxes(z, axis, -1)
+    return z
+
+# Librosa frame function implementation:
+def frame(
+    x: np.ndarray,
+    *,
+    frame_length: int,
+    hop_length: int,
+    axis: int = -1,
+    writeable: bool = False,
+    subok: bool = False,
+) -> np.ndarray:
+    x = np.array(x, copy=False, subok=subok)
+
+    if x.shape[axis] < frame_length:
+        raise ValueError(
+            f"Input is too short (n={x.shape[axis]:d}) for frame_length={frame_length:d}"
+        )
+
+    if hop_length < 1:
+        raise ValueError(f"Invalid hop_length: {hop_length:d}")
+
+    # put our new within-frame axis at the end for now
+    out_strides = x.strides + tuple([x.strides[axis]])
+
+    # Reduce the shape on the framing axis
+    x_shape_trimmed = list(x.shape)
+    x_shape_trimmed[axis] -= frame_length - 1
+
+    out_shape = tuple(x_shape_trimmed) + tuple([frame_length])
+    xw = as_strided(
+        x, strides=out_strides, shape=out_shape, subok=subok, writeable=writeable
+    )
+
+    if axis < 0:
+        target_axis = axis - 1
+    else:
+        target_axis = axis + 1
+
+    xw = np.moveaxis(xw, -1, target_axis)
+
+    # Downsample along the target axis
+    slices = [slice(None)] * xw.ndim
+    slices[axis] = slice(0, None, hop_length)
+    return xw[tuple(slices)]
+
+    
+
+def zero_crossing_rate(
+    y: np.ndarray,
+    *,
+    frame_length: int = 2048,
+    hop_length: int = 512,
+    center: bool = True,
+    **kwargs: Any,
+) -> np.ndarray:
+    if center:
+        padding = [(0, 0) for _ in range(y.ndim)]
+        padding[-1] = (int(frame_length // 2), int(frame_length // 2))
+        y = np.pad(y, padding, mode="edge")
+
+    y_framed = frame(y, frame_length=frame_length, hop_length=hop_length)
+
+    kwargs["axis"] = -2
+    kwargs.setdefault("pad", False)
+
+    crossings = zero_crossings(y_framed, **kwargs)
+
+    zcrate: np.ndarray = np.mean(crossings, axis=-2, keepdims=True)
+    return zcrate
 
 # Dataclass used to store all useful data about the wav file loaded.
 @dataclass
@@ -28,7 +128,7 @@ class WaveData:
     block_align : int
     bits_per_sample : int
     data_size : int
-    data : list[int]
+    data : np.ndarray
     frame_number : int
     sample_number : int
     audio_length_s : float
@@ -58,6 +158,8 @@ class ErrorHandler:
         if output == 0: return
         
         last_error_message = ErrorHandler.get_last_error_message()
+
+        """ TODO commentary for each exception """
 
         match output:
             case 1:
@@ -192,38 +294,79 @@ class Audiokit:
         )
                 
 if __name__ == "__main__":
+    
     audiokit = Audiokit(FILENAME)
-    y, sr = librosa.load(FILENAME, sr=None, mono=False)
+    y, sr = librosa.load(FILENAME, mono=False, sr=None)
 
-    librosa_ch1 = y[1]
-    audiokit_ch1 = audiokit.data[1]
+    print(f'data librosa shape : {y.shape}')
+    print(f'data audiokit shape : {audiokit.data.shape}')
+    
+    audiokit_channel1_values = audiokit.data[0][:5000]
+    
+    librosa_channel1_values = y[0][:5000]
+    
+    librosa_chn_size = len(librosa_channel1_values)
+    audiokit_chn_size = len(audiokit_channel1_values)
+    
+    if len(librosa_channel1_values) != len(audiokit_channel1_values):
+        raise ValueError(f"Array of channels 1 don't have the same size : librosa's array size : {librosa_chn_size}, audiokit's array size : {audiokit_chn_size}")
+        
+    for i in range(librosa_chn_size):
+        if librosa_channel1_values[i] != audiokit_channel1_values[i]:
+            raise ValueError(f"Values are not equal at index : {i}")
+        
+    zcr_librosa = librosa.feature.zero_crossing_rate(
+        y=librosa_channel1_values,
+        frame_length=500,
+        hop_length=100,
+        center=False
+    )
+    
+    zcr_implentation = zero_crossing_rate(
+        y=audiokit_channel1_values,
+        frame_length=500,
+        hop_length=100,
+        center=False
+    )
+    
+    print(f"lirosa zcr shape : {zcr_librosa.shape}")
+    print(f"python implementation zcr shape : {zcr_librosa.shape}")
+    
+    
+    zcr_nb = len(zcr_librosa[0])
+    
+    for i in range(zcr_nb):
+        print(f"{i}. librosa zcr value : {zcr_librosa[0][i]} ; python zcr value : {zcr_implentation[0][i]}")
 
-    for i in range(10):
-        print(f'{i}. audiokit value : {audiokit_ch1[i]}')
-        print(f'{i}. librosa value : {librosa_ch1[i]}')
+    # audiokit = Audiokit(FILENAME)
+        
+    # y, sr = librosa.load(FILENAME, sr=None, mono=False)
     
-
-
-    # sample_nb_represented : Final[int] = 1000
-    # start_born : int = random.randint(0, audiokit.frame_number)
-    # stop_born : int = 0
+    # print(f'librosa array shape : {np.shape(y)}')
+    # print(f'audiokit array shape : {np.shape(audiokit.data)}')
     
-    # if start_born+sample_nb_represented > audiokit.frame_number:
-    #     stop_born = audiokit.frame_number-1
-    # else: stop_born = start_born+sample_nb_represented
+    # zcr_audiokit = audiokit.zero_crossing_rate(
+    #     frame_length=2048,
+    #     hop_length=512,
+    #     center=1
+    # )
     
-    # byte_per_sample : int = audiokit.bits_per_sample/8
-    # audio_length_ms : float = audiokit.audio_length_s*1000
+    # zcr_librosa = librosa.feature.zero_crossing_rate(
+    #     y=y,
+    #     frame_length=2048,
+    #     hop_length=512,
+    #     center=False
+    # )
     
-    # time_np = np.arange(0, audio_length_ms, audio_length_ms/audiokit.sample_number*2)
+    # print(f'librosa zcr shape : {np.shape(zcr_librosa)}')
+    # print(f'audiokit zcr shape : {np.shape(zcr_audiokit)}')
     
     
-    # channel1 = audiokit.data[::2][start_born:stop_born]
-    # channel2 = audiokit.data[1::2][start_born:stop_born]
-    # time_np = time_np[start_born:stop_born]
+    # for i in range(10):
+    #     print(f'{i}. librosa ch1 : {zcr_librosa[0][0][i]} ch2 : {zcr_librosa[1][0][i]}')
+    #     print(f'{i}. audiokit ch1 : {zcr_audiokit[0][i]} ch2 : {zcr_audiokit[1][i]}')
     
-    # plt.plot(time_np, channel1, color='blue')
-    # plt.plot(time_np, channel2, color='orange')
-    
-    # plt.show()
+    # for i in range(10):
+    #     print(f'{i}. librosa data : {y[0][i]}')
+    #     print(f'{i}. audiokit data : {audiokit.data[0][i]}')
         
