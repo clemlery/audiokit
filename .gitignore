@@ -34,6 +34,10 @@
 .vscode/
 .idea/
 
+# Cahes
+.pycache
+.ruff_cache/
+
 # Autres
 build/
 dist/

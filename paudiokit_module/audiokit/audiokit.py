@@ -1,17 +1,46 @@
 from dataclasses import dataclass
 import _audiokit
-from typing import Any, Final, Optional, Callable, Union
+from typing import Any, Final, Optional, Callable, TypeVar, Union
 import numpy as np
+import numba
 from numpy.lib.stride_tricks import as_strided
-
+from numpy.typing import DTypeLike
 
 _ffi = _audiokit.ffi
 _lib = _audiokit.lib
 
-FILENAME: Final[str] = "./data/file_example_WAV_2MG.wav"
+FILENAME: Final[str] = "../data/file_example_WAV_2MG.wav"
 
 
-# ################################ HELPERS ################################
+_Number = Union[complex, "np.number[Any]"]
+_NumberOrArray = TypeVar("_NumberOrArray", bound=Union[_Number, np.ndarray])
+
+# Helpers
+
+def frame(x, frame_length, hop_length, axis=-1, writeable=False, subok=False) -> np.ndarray:
+    x = np.array(x, copy=False, subok=subok)
+    n = x.shape[axis]
+    if n < frame_length:
+        raise ValueError("Input too short")
+    if hop_length < 1:
+        raise ValueError("hop_length must be >= 1")
+
+    # 1) vue glissante (pas 1)
+    out_strides = x.strides + (x.strides[axis],)
+    shape_trim = list(x.shape)
+    shape_trim[axis] = n - frame_length + 1
+    out_shape = tuple(shape_trim) + (frame_length,)
+
+    xw = as_strided(x, strides=out_strides, shape=out_shape, writeable=writeable, subok=subok)
+
+    # 2) replacer la dimension fenêtre à côté de l’axe découpé
+    tgt = axis if axis < 0 else axis
+    xw = np.moveaxis(xw, -1, tgt + 1 if axis >= 0 else tgt)
+
+    # 3) sous-échantillonnage par hop_length sur l’axe des positions
+    slices = [slice(None)] * xw.ndim
+    slices[tgt] = slice(0, None, hop_length)
+    return xw[tuple(slices)]
 
 
 # Dataclass used to store all useful data about the wav file loaded.
@@ -352,3 +381,32 @@ class Audiokit:
             out = np.moveaxis(out, -1, axis)
 
         return out
+
+
+    @numba.vectorize(
+        ["float32(complex64)", "float64(complex128)"], nopython=True, cache=True, identity=0
+    )  # type: ignore
+    def _cabs2(x: complex) -> float:  # pragma: no cover
+        """Efficiently compute abs2 on complex inputs"""
+        return x.real**2 + x.imag**2
+
+    def rms(
+        *,
+        y: Optional[np.ndarray] = None,
+        S: Optional[np.ndarray] = None,
+        frame_length: int = 2048,
+        hop_length: int = 512,
+        center: bool = True,
+        pad_mode: _PadMode = "constant", # type ignore
+        dtype: DTypeLike = np.float32, # type ignore
+    ) -> np.ndarray:
+        pass
+    
+    def abs2(x: _NumberOrArray, dtype: Optional[DTypeLike] = None) -> _NumberOrArray:
+        if np.iscomplexobj(x):
+            y = (x.real * x.real + x.imag * x.imag)
+        else:
+            y = np.square(x)
+        if dtype is not None:
+            y = y.astype(dtype)
+        return y
